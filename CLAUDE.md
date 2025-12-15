@@ -36,7 +36,7 @@ bun run check:watch   # Watch mode
 - `queueState`: Current playback position and queue (persists across refreshes)
 - `settings`: Voice selection, playback speed, preferences
 
-**Server (SQLite via better-sqlite3)** - `src/lib/server/db/jobQueue.ts`
+**Server (SQLite via bun:sqlite)** - `src/lib/server/db/jobQueue.ts`
 - `audio_jobs`: TTS generation queue with progress tracking
 - Jobs expire after 24 hours, audio files stored in `/data/audio/`
 - WAL mode enabled for concurrent access
@@ -69,7 +69,7 @@ ORIGIN=https://your.domain    # Required in production for CORS
 
 ## Deployment
 
-Uses Bun runtime with `@sveltejs/adapter-node` and multi-stage Dockerfile (`oven/bun:1`). Deploy to Fly.io (`fly deploy`) or Coolify with persistent volume at `/app/data` for SQLite and audio files.
+Uses Bun runtime with `svelte-adapter-bun` and multi-stage Dockerfile (`oven/bun:1`). Fly.io auto-deploys on push to main. Persistent volume at `/app/data` for SQLite and audio files.
 
 ## Tech Stack
 
@@ -77,6 +77,6 @@ Uses Bun runtime with `@sveltejs/adapter-node` and multi-stage Dockerfile (`oven
 - SvelteKit 5 with Svelte 5 runes (`$state`, `$derived`)
 - Tailwind CSS 4 (via Vite plugin)
 - Dexie (IndexedDB wrapper)
-- better-sqlite3 (server-side jobs)
+- bun:sqlite (server-side jobs)
 - @mozilla/readability + jsdom (article extraction)
 - lucide-svelte (icons)
