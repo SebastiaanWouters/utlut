@@ -69,7 +69,7 @@ ORIGIN=https://your.domain    # Required in production for CORS
 
 ## Deployment
 
-Uses Bun runtime with `@sveltejs/adapter-node` and multi-stage Dockerfile (`oven/bun:1`). Deploy to Fly.io or Coolify with persistent volume at `/app/data` for SQLite and audio files. GitHub Actions auto-deploys to Fly.io on push to main.
+Uses Bun runtime with `@sveltejs/adapter-node` and multi-stage Dockerfile (`oven/bun:1`). Deploy to Fly.io (`fly deploy`) or Coolify with persistent volume at `/app/data` for SQLite and audio files.
 
 ## Tech Stack
 
