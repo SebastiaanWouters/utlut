@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+@import 'tailwindcss-safe-area';
+
+:root {
+	--color-primary: #3b82f6;
+	--color-primary-dark: #2563eb;
+}
+
+html {
+	background-color: #09090b;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	height: 100%;
+}
+
+body {
+	background-color: #09090b;
+	margin: 0;
+	padding: 0;
+	color: #fafafa;
+	height: 100%;
+	/* Use dvh for dynamic viewport height that accounts for mobile browser chrome */
+	min-height: 100dvh;
+	/* Fallback for older browsers */
+	min-height: -webkit-fill-available;
+	/* Enable native scroll bounce for app-like feel */
+	-webkit-overflow-scrolling: touch;
+}

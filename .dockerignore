@@ -1,0 +1,36 @@
+node_modules
+.git
+.gitignore
+.svelte-kit
+build
+
+# Database and audio files (created at runtime)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test files
+*.test.*
+*.spec.*
+__tests__
+
+# Documentation
+*.md
+!README.md
