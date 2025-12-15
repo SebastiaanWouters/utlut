@@ -15,7 +15,7 @@
 	let error = $state('');
 	let clipboardLoading = $state(false);
 	let clipboardStatus = $state('');
-	let aiOptimize = $state(browser ? localStorage.getItem('aiOptimize') === 'true' : false);
+	let aiOptimize = $state(browser ? localStorage.getItem('aiOptimize') !== 'false' : true);
 
 	// Persist AI optimize preference
 	$effect(() => {
@@ -214,7 +214,23 @@
 		error = '';
 
 		try {
-			const text = await navigator.clipboard.readText();
+			// Check if Clipboard API is available
+			if (!navigator?.clipboard?.readText) {
+				throw new Error('Clipboard access not available. Try pasting manually using the "Paste Text" tab.');
+			}
+
+			let text: string;
+			try {
+				text = await navigator.clipboard.readText();
+			} catch (clipboardError) {
+				// Handle permission denied or other clipboard errors
+				const message = clipboardError instanceof Error ? clipboardError.message : 'Unknown error';
+				if (message.includes('denied') || message.includes('permission')) {
+					throw new Error('Clipboard permission denied. Please allow clipboard access or use the "Paste Text" tab.');
+				}
+				throw new Error(`Could not read clipboard: ${message}`);
+			}
+
 			if (!text || !text.trim()) {
 				throw new Error('Clipboard is empty');
 			}
