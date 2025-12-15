@@ -17,8 +17,8 @@ bun remove <package>
 bun run dev           # Start dev server at localhost:5173
 
 # Production
-bun run build         # Build for production (uses node adapter)
-node build            # Run production build (or use Dockerfile)
+bun run build         # Build for production
+bun run start         # Run production build
 
 # Type checking
 bun run check         # Single run
@@ -69,10 +69,11 @@ ORIGIN=https://your.domain    # Required in production for CORS
 
 ## Deployment
 
-Uses `@sveltejs/adapter-node` with multi-stage Dockerfile. Deploy to Coolify with persistent volume at `/app/data` for SQLite and audio files. See DEPLOYMENT.md for full guide.
+Uses Bun runtime with `@sveltejs/adapter-node` and multi-stage Dockerfile (`oven/bun:1`). Deploy to Fly.io or Coolify with persistent volume at `/app/data` for SQLite and audio files. GitHub Actions auto-deploys to Fly.io on push to main.
 
 ## Tech Stack
 
+- Bun runtime
 - SvelteKit 5 with Svelte 5 runes (`$state`, `$derived`)
 - Tailwind CSS 4 (via Vite plugin)
 - Dexie (IndexedDB wrapper)
