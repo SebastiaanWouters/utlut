@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import { Database } from 'bun:sqlite';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 
@@ -11,7 +11,7 @@ if (!existsSync(dataDir)) {
 const db = new Database(join(dataDir, 'jobs.db'));
 
 // Enable WAL mode for better concurrent access
-db.pragma('journal_mode = WAL');
+db.exec('PRAGMA journal_mode = WAL');
 
 // Create tables
 db.exec(`
@@ -196,8 +196,8 @@ export function getExpiredJobs(): AudioJob[] {
 
 export function cleanupExpiredJobs(): number {
 	const now = Date.now();
-	const result = deleteExpiredStmt.run(now);
-	return result.changes;
+	deleteExpiredStmt.run(now);
+	return db.changes;
 }
 
 export function getPendingJobCount(): number {
@@ -213,12 +213,12 @@ export function getProcessingJobCount(): number {
 // Reset any jobs that were processing when server restarted (stale jobs)
 export function resetStaleProcessingJobs(): number {
 	const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-	const result = db.prepare(`
+	db.prepare(`
 		UPDATE audio_jobs
 		SET status = 'pending', updated_at = ?
 		WHERE status = 'processing' AND started_at < ?
 	`).run(Date.now(), fiveMinutesAgo);
-	return result.changes;
+	return db.changes;
 }
 
 // Initialize: reset stale jobs on startup
