@@ -29,6 +29,7 @@ test('setup page uses existing token if it exists', function () {
     $user = User::factory()->create();
     $deviceToken = $user->deviceTokens()->create([
         'token' => 'test-token',
+        'token_hash' => hash('sha256', 'test-token'),
         'name' => 'Existing Device',
     ]);
 
