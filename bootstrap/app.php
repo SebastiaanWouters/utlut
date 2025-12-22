@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,6 +16,20 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'device_token' => \App\Http\Middleware\AuthenticateDeviceToken::class,
         ]);
+
+        // Trust proxies when behind load balancer
+        if (env('TRUST_PROXIES', false)) {
+            $middleware->trustProxies(
+                at: env('TRUST_PROXIES') === '*' ? '*' : explode(',', env('TRUST_PROXIES', '')),
+                headers: Request::HEADER_X_FORWARDED_FOR |
+                    Request::HEADER_X_FORWARDED_HOST |
+                    Request::HEADER_X_FORWARDED_PORT |
+                    Request::HEADER_X_FORWARDED_PROTO
+            );
+        }
+
+        // Add security headers
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Suppress broken pipe notices from server.php stdout writes
@@ -26,4 +41,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return false; // Let other errors through
         }, E_NOTICE);
+
+        // Don't report certain exceptions in production
+        $exceptions->dontReport([
+            \Illuminate\Auth\AuthenticationException::class,
+            \Illuminate\Auth\Access\AuthorizationException::class,
+            \Illuminate\Database\Eloquent\ModelNotFoundException::class,
+            \Illuminate\Validation\ValidationException::class,
+        ]);
     })->create();
