@@ -1,13 +1,16 @@
 <?php
 
+use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
 use App\Models\DeviceToken;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
 test('unauthenticated request fails', function () {
+    Queue::fake();
     $response = $this->postJson('/api/save', [
         'url' => 'https://example.com',
         'title' => 'Example',
@@ -16,9 +19,12 @@ test('unauthenticated request fails', function () {
 
     $response->assertStatus(401)
         ->assertJson(['ok' => false, 'error' => 'No token provided']);
+
+    Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
 test('invalid token fails', function () {
+    Queue::fake();
     $response = $this->withToken('invalid-token')->postJson('/api/save', [
         'url' => 'https://example.com',
         'title' => 'Example',
@@ -27,9 +33,13 @@ test('invalid token fails', function () {
 
     $response->assertStatus(401)
         ->assertJson(['ok' => false, 'error' => 'Invalid token']);
+
+    Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
-test('valid token creates article', function () {
+test('valid token creates article and dispatches job', function () {
+    Queue::fake();
+
     $user = User::factory()->create();
     $token = 'valid-token';
     $deviceToken = DeviceToken::factory()->create([
@@ -53,9 +63,12 @@ test('valid token creates article', function () {
         'title' => 'Test Article',
         'body' => 'Article body content.',
     ]);
+
+    Queue::assertPushed(GenerateArticleAudio::class);
 });
 
 test('duplicate url updates existing article', function () {
+    Queue::fake();
     $user = User::factory()->create();
     $token = 'valid-token';
     $deviceToken = DeviceToken::factory()->create([
@@ -85,9 +98,12 @@ test('duplicate url updates existing article', function () {
         'title' => 'New Title',
         'body' => 'New Body',
     ]);
+
+    Queue::assertPushed(GenerateArticleAudio::class);
 });
 
 test('validation errors', function () {
+    Queue::fake();
     $user = User::factory()->create();
     $token = 'valid-token';
     DeviceToken::factory()->create([
@@ -101,4 +117,6 @@ test('validation errors', function () {
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['url']);
+
+    Queue::assertNotPushed(GenerateArticleAudio::class);
 });

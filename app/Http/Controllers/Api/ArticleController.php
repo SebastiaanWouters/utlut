@@ -30,7 +30,31 @@ class ArticleController extends Controller
             })
             ->when($request->status === 'ready', fn ($q) => $q->whereHas('audio', fn ($sq) => $sq->where('status', 'ready')))
             ->latest()
-            ->paginate(20);
+            ->paginate(config('utlut.pagination.articles'));
+
+        return ArticleResource::collection($articles);
+    }
+
+    /**
+     * Display the specified resources by ID.
+     */
+    public function batch(Request $request): AnonymousResourceCollection
+    {
+        $deviceToken = $request->input('device_token');
+        $ids = array_filter(explode(',', $request->query('ids', '')));
+
+        if (empty($ids)) {
+            return ArticleResource::collection(collect());
+        }
+
+        $articles = Article::where('device_token_id', $deviceToken->id)
+            ->whereIn('id', $ids)
+            ->get();
+
+        // Sort by the order of IDs provided if requested
+        if ($request->boolean('preserve_order')) {
+            $articles = $articles->sortBy(fn ($article) => array_search($article->id, $ids))->values();
+        }
 
         return ArticleResource::collection($articles);
     }
@@ -53,6 +77,10 @@ class ArticleController extends Controller
             ]
         );
 
+        if ($article->body) {
+            GenerateArticleAudio::dispatch($article);
+        }
+
         return response()->json([
             'ok' => true,
             'title' => $article->title ?: $article->url,
@@ -66,10 +94,17 @@ class ArticleController extends Controller
     {
         $audio = $article->audio()->first();
 
-        if ($audio && in_array($audio->status, ['pending', 'ready'])) {
+        if ($audio && $audio->status === 'pending') {
             return response()->json([
                 'ok' => true,
-                'status' => $audio->status,
+                'status' => 'pending',
+            ]);
+        }
+
+        if ($audio && $audio->status === 'ready' && $audio->content_hash === hash('sha256', $article->body)) {
+            return response()->json([
+                'ok' => true,
+                'status' => 'ready',
             ]);
         }
 
@@ -101,10 +136,15 @@ class ArticleController extends Controller
         if (str_starts_with($audio->audio_path, 'http')) {
             // If it's an external URL (like our mock), we stream it
             return response()->stream(function () use ($audio) {
-                $stream = fopen($audio->audio_path, 'r');
-                if ($stream) {
-                    fpassthru($stream);
-                    fclose($stream);
+                try {
+                    $stream = fopen($audio->audio_path, 'r');
+                    if ($stream) {
+                        fpassthru($stream);
+                        fclose($stream);
+                    }
+                } catch (\Throwable $e) {
+                    // Log error but don't expose to client (streaming already started)
+                    \Log::error('Audio stream failed', ['path' => $audio->audio_path, 'error' => $e->getMessage()]);
                 }
             }, 200, [
                 'Content-Type' => 'audio/mpeg',
@@ -113,7 +153,7 @@ class ArticleController extends Controller
         }
 
         // If it's a local path, we serve it from storage
-        if (! Storage::exists($audio->audio_path)) {
+        if (! Storage::disk('public')->exists($audio->audio_path)) {
             return response()->json([
                 'ok' => false,
                 'status' => 'failed',
@@ -121,6 +161,6 @@ class ArticleController extends Controller
             ], 404);
         }
 
-        return Storage::download($audio->audio_path);
+        return Storage::disk('public')->response($audio->audio_path);
     }
 }

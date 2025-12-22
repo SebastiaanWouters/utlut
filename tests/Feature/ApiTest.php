@@ -41,6 +41,7 @@ test('POST /api/token requires a name', function () {
 });
 
 test('POST /api/save requires bearer token and stores/dedupes article', function () {
+    Queue::fake();
     $user = User::factory()->create();
     $token = 'test-token';
     $deviceToken = DeviceToken::factory()->create([
@@ -70,15 +71,51 @@ test('POST /api/save requires bearer token and stores/dedupes article', function
         'url' => 'https://laravel.com',
     ]);
 
+    Queue::assertPushed(GenerateArticleAudio::class);
+
     // Deduplication
     $this->withToken($token)
         ->postJson('/api/save', $data)
         ->assertSuccessful();
 
     expect(Article::where('device_token_id', $deviceToken->id)->count())->toBe(1);
+    Queue::assertPushed(GenerateArticleAudio::class, 2);
+});
+
+test('GET /api/articles/batch returns articles by IDs', function () {
+    $user = User::factory()->create();
+    $token = 'test-token';
+    $deviceToken = DeviceToken::factory()->create([
+        'user_id' => $user->id,
+        'token_hash' => hash('sha256', $token),
+        'name' => 'Test Device',
+    ]);
+
+    $articles = Article::factory()->count(5)->create(['device_token_id' => $deviceToken->id]);
+    $ids = $articles->take(3)->pluck('id')->join(',');
+
+    $response = $this->withToken($token)
+        ->getJson("/api/articles/batch?ids={$ids}");
+
+    $response->assertSuccessful()
+        ->assertJsonCount(3, 'data');
+
+    // Test with preserve_order
+    $reversedIds = $articles->take(3)->pluck('id')->reverse()->join(',');
+    $response = $this->withToken($token)
+        ->getJson("/api/articles/batch?ids={$reversedIds}&preserve_order=1");
+
+    $response->assertSuccessful()
+        ->assertJsonCount(3, 'data');
+
+    $responseData = $response->json('data');
+    expect($responseData[0]['id'])->toBe($articles[2]->id);
+    expect($responseData[1]['id'])->toBe($articles[1]->id);
+    expect($responseData[2]['id'])->toBe($articles[0]->id);
 });
 
 test('POST /api/save validates URL', function () {
+    Queue::fake();
     $user = User::factory()->create();
     $token = 'test-token';
     DeviceToken::factory()->create([
@@ -90,6 +127,8 @@ test('POST /api/save validates URL', function () {
         ->postJson('/api/save', ['url' => 'invalid-url', 'title' => 'T', 'body' => 'B'])
         ->assertStatus(422)
         ->assertJsonValidationErrors(['url']);
+
+    Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
 test('API endpoints return 401 with invalid token', function () {
@@ -150,17 +189,18 @@ test('POST /api/articles/{id}/tts is idempotent', function () {
 });
 
 test('GET /api/articles/{id}/audio returns audio when ready', function () {
-    Storage::fake('local');
+    Storage::fake('public');
     $user = User::factory()->create();
     $token = 'test-token';
     $deviceToken = DeviceToken::factory()->create([
         'user_id' => $user->id,
         'token_hash' => hash('sha256', $token),
+        'name' => 'Test Device',
     ]);
     $article = Article::factory()->create(['device_token_id' => $deviceToken->id]);
 
     $audioContent = 'mock audio content';
-    Storage::disk('local')->put('audio/test.mp3', $audioContent);
+    Storage::disk('public')->put('audio/test.mp3', $audioContent);
 
     ArticleAudio::factory()->create([
         'article_id' => $article->id,
