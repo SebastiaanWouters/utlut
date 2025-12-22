@@ -1,0 +1,45 @@
+---
+description: Create distinctive, production-grade frontend interfaces with high design quality. Avoids generic AI aesthetics.
+globs: resources/views/**/*.blade.php, resources/js/**/*.{js,ts,vue}, resources/css/**/*.css
+---
+# Frontend Design Skill
+
+This skill is designed to help you create distinctive, production-grade frontend interfaces with high design quality. It emphasizes creative, polished code that avoids generic AI aesthetics.
+
+## Core Philosophy
+
+Avoid "AI Slop" by focusing on a clear aesthetic point-of-view. Every interface should feel intentional, meticulously refined, and production-ready.
+
+## 1. Typography
+- **Selection**: Avoid generic system fonts unless specified. Use distinctive fonts that elevate the design.
+- **Hierarchy**: Establish clear typographic scales. Use varying weights, letter spacing, and line heights to create rhythm.
+- **Contrast**: Use size and weight to guide the eye. Consider oversized headings for impact.
+
+## 2. Color & Theme
+- **Cohesion**: Commit to a cohesive aesthetic. Define a primary palette and use it consistently.
+- **Accents**: Use sharp, high-contrast accents for interactive elements.
+- **Depth**: Use subtle color shifts and overlays to create visual interest without clutter.
+
+## 3. Motion & Interaction
+- **Micro-interactions**: Implement subtle feedback for user actions (hover, click, focus).
+- **Animations**: Focus on high-impact moments. Use smooth transitions for entering/exiting states.
+- **Physics**: Prefer spring-based or eased animations that feel natural and premium.
+
+## 4. Spatial Composition
+- **Layout**: Experiment with unexpected layouts and asymmetry.
+- **Negative Space**: Be generous with white space to let elements breathe.
+- **Alignment**: Use grids but don't be afraid to break them for visual tension.
+
+## 5. Visual Details & Backgrounds
+- **Atmosphere**: Use gradient meshes, noise textures, and layered transparencies to create depth.
+- **Refinement**: Pay attention to borders, shadows, and rounded corners. Use subtle gradients for "glassmorphism" or "neubrutalism" where appropriate.
+- **Contextual Effects**: Add effects that match the overall aesthetic (e.g., subtle glow for a dark mode "cyber" theme).
+
+## 6. Implementation Guidelines (Tailwind CSS 4)
+- **CSS-First**: Leverage the `@theme` directive in CSS for extending colors and fonts.
+- **Modern Utilities**: Use the latest Tailwind 4 features (e.g., `bg-black/50` for opacity, `text-ellipsis`).
+- **Composition**: Use utility classes to build complex visual details without heavy custom CSS.
+
+## 7. Interaction with Flux UI
+- **Customization**: Don't just use default Flux components; customize them to fit the aesthetic theme using Tailwind classes.
+- **Composition**: Combine Flux components with custom layouts to achieve unique spatial compositions.
