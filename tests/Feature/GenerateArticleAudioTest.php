@@ -56,14 +56,17 @@ it('handles failure when tts service fails', function () {
         ->and($audioRecord->error_message)->toBe('TTS service error');
 });
 
-it('is idempotent and skips if already ready and file exists', function () {
+it('is idempotent and skips if already ready, file exists, and content matches', function () {
     Storage::fake('public');
     Storage::disk('public')->put('audio/1.mp3', 'existing content');
 
-    $article = Article::factory()->create(['id' => 1, 'body' => 'Test']);
+    $body = 'Test';
+    $hash = hash('sha256', $body);
+    $article = Article::factory()->create(['id' => 1, 'body' => $body]);
     $article->audio()->create([
         'status' => 'ready',
         'audio_path' => 'audio/1.mp3',
+        'content_hash' => $hash,
     ]);
 
     $mockTts = mock(NagaTts::class);
@@ -73,4 +76,31 @@ it('is idempotent and skips if already ready and file exists', function () {
     $job->handle($mockTts);
 
     expect(Storage::disk('public')->get('audio/1.mp3'))->toBe('existing content');
+});
+
+it('re-generates if content has changed', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('audio/1.mp3', 'old audio');
+
+    $oldBody = 'Old Body';
+    $newBody = 'New Body';
+    $article = Article::factory()->create(['id' => 1, 'body' => $newBody]);
+    $article->audio()->create([
+        'status' => 'ready',
+        'audio_path' => 'audio/1.mp3',
+        'content_hash' => hash('sha256', $oldBody),
+    ]);
+
+    $mockTts = mock(NagaTts::class);
+    $mockTts->shouldReceive('generate')
+        ->once()
+        ->with($newBody)
+        ->andReturn('new audio content');
+
+    $job = new GenerateArticleAudio($article);
+    $job->handle($mockTts);
+
+    $article->refresh();
+    expect(Storage::disk('public')->get('audio/1.mp3'))->toBe('new audio content')
+        ->and($article->audio->content_hash)->toBe(hash('sha256', $newBody));
 });

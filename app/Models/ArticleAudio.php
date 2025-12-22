@@ -16,6 +16,7 @@ class ArticleAudio extends Model
     /** @var list<string> */
     protected $fillable = [
         'article_id',
+        'content_hash',
         'status',
         'audio_path',
         'duration_seconds',

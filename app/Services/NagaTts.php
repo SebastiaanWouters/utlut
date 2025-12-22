@@ -12,21 +12,22 @@ class NagaTts
      *
      * @return string Raw audio bytes (MP3 format)
      */
-    public function generate(string $text, string $voice = 'alloy'): string
+    public function generate(string $text, ?string $voice = null): string
     {
-        $config = config('services.naga');
+        $nagaConfig = config('services.naga');
+        $ttsConfig = config('utlut.tts');
 
-        if (! $config['key']) {
+        if (! $nagaConfig['key']) {
             throw new \Exception('Naga API key is not configured');
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer '.$config['key'],
+        $response = Http::timeout($ttsConfig['timeout'])->withHeaders([
+            'Authorization' => 'Bearer '.$nagaConfig['key'],
             'Content-Type' => 'application/json',
-        ])->post($config['url'].'/v1/audio/speech', [
-            'model' => 'gpt-4o-mini-tts:free',
+        ])->post($nagaConfig['url'].'/v1/audio/speech', [
+            'model' => $ttsConfig['model'],
             'input' => $text,
-            'voice' => $voice,
+            'voice' => $voice ?? $ttsConfig['default_voice'],
             'response_format' => 'mp3',
         ]);
 

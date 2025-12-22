@@ -24,7 +24,6 @@ class ArticleAudioFactory extends Factory
             'article_id' => Article::factory(),
             'status' => 'ready',
             'audio_path' => 'https://example.com/audio/'.fake()->uuid().'.mp3',
-            'provider' => 'naga',
         ];
     }
 }
