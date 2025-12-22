@@ -16,242 +16,295 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
     }
 }; ?>
 
-<div class="flex flex-col h-full bg-zinc-50 dark:bg-zinc-950 overflow-hidden" x-data="player('{{ $token }}')">
-    <div x-show="!isOnline" class="bg-red-500 text-white text-xs py-1 px-3 text-center font-medium animate-pulse" x-cloak>
-        {{ __('Offline Mode - Only cached articles will play') }}
+<div class="flex h-full flex-col" x-data>
+    <!-- Offline Banner -->
+    <div x-show="!$store.player.isOnline" class="border-b border-zinc-200 bg-zinc-100 py-2 text-center text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400" x-cloak>
+        {{ __('Offline — Playing cached articles only') }}
     </div>
-    <div class="flex-1 flex flex-col md:flex-row p-6 gap-8 overflow-hidden">
+
+    <div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <!-- Main Player Area -->
-        <div class="flex-1 flex flex-col items-center justify-center gap-8">
-            <div class="w-full max-w-md aspect-square bg-zinc-200 dark:bg-zinc-800 rounded-2xl shadow-2xl flex items-center justify-center overflow-hidden group relative">
-                <flux:icon name="musical-note" size="xl" class="text-zinc-400 dark:text-zinc-600 group-hover:scale-110 transition-transform duration-500" />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-
-            <div class="w-full max-w-md flex flex-col gap-1 text-center">
-                <flux:heading level="1" size="xl" class="truncate" x-text="currentTrack ? (currentTrack.title || currentTrack.url) : '{{ __('Not Playing') }}'"></flux:heading>
-                <flux:text variant="subtle" class="truncate" x-text="currentTrack ? currentTrack.url : ''"></flux:text>
-            </div>
-
-            <div class="w-full max-w-md flex flex-col gap-2">
-                <div class="relative h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full cursor-pointer group" @click="seek($event)">
-                    <div class="absolute inset-y-0 left-0 bg-zinc-900 dark:bg-zinc-100 rounded-full transition-all duration-100" :style="{ width: progress + '%' }"></div>
-                    <div class="absolute top-1/2 -translate-y-1/2 size-3 bg-zinc-900 dark:bg-zinc-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg" :style="{ left: progress + '%' }"></div>
+        <div class="flex flex-1 flex-col items-center justify-center px-6 py-8 md:px-12 md:py-12 lg:py-16">
+            <div class="flex w-full max-w-md flex-col items-center gap-8">
+                <!-- Album Art -->
+                <div class="relative aspect-square w-full max-w-[280px]">
+                    <div class="absolute -inset-1 rounded-[28px] bg-gradient-to-br from-zinc-200 to-zinc-300 opacity-50 blur-xl dark:from-zinc-700 dark:to-zinc-800"></div>
+                    <div class="relative flex h-full w-full items-center justify-center rounded-[24px] bg-gradient-to-br from-zinc-100 to-zinc-200 shadow-xl dark:from-zinc-700 dark:to-zinc-800">
+                        <div class="flex size-24 items-center justify-center rounded-full bg-white/60 dark:bg-black/20">
+                            <flux:icon name="musical-note" class="size-12 text-zinc-400 dark:text-zinc-500" />
+                        </div>
+                    </div>
                 </div>
-                <div class="flex justify-between text-xs text-zinc-500 font-medium tabular-nums">
-                    <span x-text="formatTime(currentTime)">0:00</span>
-                    <span x-text="formatTime(duration)">0:00</span>
-                </div>
-            </div>
 
-            <div class="flex items-center gap-8">
-                <button class="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed" @click="prev" x-bind:disabled="currentIndex <= 0">
-                    <flux:icon name="backward" />
-                </button>
-                <button class="size-16 rounded-full bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl" @click="togglePlay" x-bind:disabled="!currentTrack">
-                    <span x-show="isPlaying" x-cloak>
-                        <flux:icon name="pause" size="lg" />
-                    </span>
-                    <span x-show="!isPlaying">
-                        <flux:icon name="play" size="lg" />
-                    </span>
-                </button>
-                <button class="p-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed" @click="next" x-bind:disabled="currentIndex >= queue.length - 1">
-                    <flux:icon name="forward" />
-                </button>
+                <!-- Track Info -->
+                <div class="flex w-full flex-col gap-1.5 text-center">
+                    <h1 class="text-lg font-medium text-zinc-900 dark:text-zinc-100 sm:text-xl" x-text="$store.player.currentTrack ? ($store.player.currentTrack.title || $store.player.currentTrack.url) : '{{ __('Not Playing') }}'"></h1>
+                    <p class="truncate text-sm text-zinc-500 dark:text-zinc-400" x-text="$store.player.currentTrack ? $store.player.currentTrack.url : '{{ __('Select an article to play') }}'"></p>
+                </div>
+
+                <!-- Progress -->
+                <div class="flex w-full flex-col gap-2.5">
+                    <div class="group relative h-1.5 w-full cursor-pointer rounded-full bg-zinc-200 dark:bg-zinc-700" @click="$store.player.seek($event)">
+                        <div class="absolute inset-y-0 left-0 rounded-full bg-zinc-900 transition-all duration-150 ease-out dark:bg-zinc-100" :style="{ width: $store.player.progress + '%' }"></div>
+                        <div class="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-900 opacity-0 shadow-lg ring-4 ring-white transition-opacity duration-150 group-hover:opacity-100 dark:bg-zinc-100 dark:ring-zinc-800" :style="{ left: $store.player.progress + '%' }"></div>
+                    </div>
+                    <div class="flex justify-between text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
+                        <span x-text="$store.player.formatTime($store.player.currentTime)">0:00</span>
+                        <span x-text="$store.player.formatTime($store.player.duration)">0:00</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex items-center justify-center gap-6">
+                    <button
+                        class="flex size-12 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        @click="$store.player.prev()"
+                        x-bind:disabled="$store.player.currentIndex <= 0"
+                    >
+                        <flux:icon name="backward" class="size-6" />
+                    </button>
+                    <button
+                        class="flex size-16 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg transition-all hover:scale-[1.04] hover:shadow-xl active:scale-[0.98] disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+                        @click="$store.player.togglePlay()"
+                        x-bind:disabled="!$store.player.currentTrack"
+                    >
+                        <span x-show="$store.player.isPlaying" x-cloak>
+                            <flux:icon name="pause" class="size-7" />
+                        </span>
+                        <span x-show="!$store.player.isPlaying">
+                            <flux:icon name="play" class="ml-1 size-7" />
+                        </span>
+                    </button>
+                    <button
+                        class="flex size-12 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        @click="$store.player.next()"
+                        x-bind:disabled="$store.player.currentIndex >= $store.player.queue.length - 1"
+                    >
+                        <flux:icon name="forward" class="size-6" />
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Queue Sidebar -->
-        <div class="w-full md:w-80 flex flex-col gap-4 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 overflow-hidden shadow-sm">
-            <flux:heading level="2" size="lg" class="px-2">{{ __('Queue') }}</flux:heading>
-            
-            <div class="flex-1 overflow-y-auto flex flex-col gap-1 pr-2 custom-scrollbar">
-                <template x-for="(track, index) in queue" :key="track.id">
-                    <div 
-                        class="group flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer"
-                        :class="currentIndex === index ? 'bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-zinc-700' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'"
-                        @click="playTrack(index)"
-                    >
-                        <div class="size-10 bg-zinc-200 dark:bg-zinc-700 rounded-lg flex items-center justify-center shrink-0">
-                            <flux:icon name="musical-note" size="sm" class="text-zinc-400" />
-                        </div>
-                        <div class="flex-1 flex flex-col gap-0.5 overflow-hidden">
-                            <h3 class="text-sm font-medium truncate" x-bind:class="currentIndex === index ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-600 dark:text-zinc-400'" x-text="track.title || track.url"></h3>
-                            <p class="text-xs text-zinc-500 truncate" x-text="track.url"></p>
-                        </div>
-                        <flux:button icon="x-mark" variant="ghost" size="xs" class="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500" @click.stop="removeFromQueue(index)" />
+        <!-- Queue Panel -->
+        <div class="queue-panel flex w-full flex-col border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50 to-zinc-100/50 dark:border-zinc-700/60 dark:from-zinc-900 dark:to-zinc-900/80 lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="flex size-7 items-center justify-center rounded-lg bg-zinc-200/80 dark:bg-zinc-700/60">
+                        <flux:icon name="queue-list" class="size-4 text-zinc-500 dark:text-zinc-400" />
                     </div>
-                </template>
-                <div x-show="queue.length === 0" class="flex-1 flex flex-col items-center justify-center gap-2 text-zinc-400 py-12 text-center">
-                    <flux:icon name="musical-note" size="lg" />
-                    <flux:text variant="subtle">{{ __('Queue is empty') }}</flux:text>
+                    <h2 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{{ __('Up Next') }}</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span
+                        class="inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-zinc-900/5 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-zinc-600 dark:bg-zinc-100/10 dark:text-zinc-400"
+                        x-text="$store.player.queue.length + ' ' + ($store.player.queue.length === 1 ? '{{ __('track') }}' : '{{ __('tracks') }}')"
+                    ></span>
+                    <button
+                        x-show="$store.player.queue.length > 0"
+                        x-cloak
+                        class="rounded-lg p-1.5 text-zinc-400 transition-all duration-200 hover:bg-zinc-200/80 hover:text-zinc-600 active:scale-95 dark:hover:bg-zinc-700/60 dark:hover:text-zinc-300"
+                        @click="$store.player.clearQueue()"
+                        title="{{ __('Clear queue') }}"
+                    >
+                        <flux:icon name="trash" class="size-4" />
+                    </button>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="mx-4 h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent dark:via-zinc-700/60 sm:mx-5"></div>
+
+            <!-- Queue List -->
+            <div class="queue-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 sm:px-3 sm:py-3">
+                <div class="space-y-1">
+                    <template x-for="(track, index) in $store.player.queue" :key="track.id">
+                        <div
+                            class="queue-item group relative flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 sm:gap-3.5 sm:px-3.5 sm:py-3"
+                            :class="($store.player.currentIndex === index)
+                                ? 'queue-item-active bg-white shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-800 dark:ring-zinc-100/5'
+                                : 'hover:bg-white/70 active:bg-white active:scale-[0.99] dark:hover:bg-zinc-800/50 dark:active:bg-zinc-800/70'"
+                            @click="$store.player.playTrack(index)"
+                        >
+                            <!-- Track Number / Playing Indicator -->
+                            <div
+                                class="relative flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold transition-all duration-200 sm:size-10"
+                                :class="($store.player.currentIndex === index)
+                                    ? 'bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900'
+                                    : 'bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200/80 dark:bg-zinc-700/60 dark:text-zinc-400 dark:group-hover:bg-zinc-700'"
+                            >
+                                <!-- Playing Animation -->
+                                <template x-if="$store.player.currentIndex === index && $store.player.isPlaying">
+                                    <div class="flex items-end gap-[3px]">
+                                        <span class="eq-bar h-2.5 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                        <span class="eq-bar animation-delay-100 h-4 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                        <span class="eq-bar animation-delay-200 h-3 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                    </div>
+                                </template>
+                                <!-- Paused Icon for Current Track -->
+                                <template x-if="$store.player.currentIndex === index && !$store.player.isPlaying">
+                                    <flux:icon name="pause" class="size-4" />
+                                </template>
+                                <!-- Track Number -->
+                                <template x-if="$store.player.currentIndex !== index">
+                                    <span x-text="index + 1" class="tabular-nums"></span>
+                                </template>
+                            </div>
+
+                            <!-- Track Info -->
+                            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                <span
+                                    class="line-clamp-1 text-[13px] font-medium leading-tight text-zinc-900 transition-colors sm:text-sm dark:text-zinc-100"
+                                    :class="$store.player.currentIndex === index ? 'text-zinc-900 dark:text-zinc-100' : 'group-hover:text-zinc-900 dark:group-hover:text-zinc-100'"
+                                    x-text="track.title || track.url"
+                                ></span>
+                                <span
+                                    class="line-clamp-1 text-[11px] text-zinc-400 transition-colors sm:text-xs dark:text-zinc-500"
+                                    x-text="$store.player.getHostname(track.url)"
+                                ></span>
+                            </div>
+
+                            <!-- Remove Button -->
+                            <button
+                                class="flex size-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all duration-200 hover:bg-zinc-100 hover:text-red-500 group-hover:opacity-100 focus:opacity-100 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-red-400 sm:size-9"
+                                :class="$store.player.currentIndex === index ? 'opacity-70' : ''"
+                                @click.stop="$store.player.removeFromQueue(index)"
+                                title="{{ __('Remove from queue') }}"
+                            >
+                                <flux:icon name="x-mark" class="size-4" />
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Empty State -->
+                <div
+                    x-show="$store.player.queue.length === 0"
+                    x-transition:enter="transition ease-out duration-300"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    class="flex h-full min-h-[200px] flex-col items-center justify-center gap-4 px-4 py-12 sm:min-h-[280px] sm:py-16"
+                >
+                    <div class="relative">
+                        <div class="absolute -inset-3 rounded-3xl bg-gradient-to-br from-zinc-200/50 to-zinc-300/30 blur-xl dark:from-zinc-700/30 dark:to-zinc-800/20"></div>
+                        <div class="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-100 to-zinc-200/80 shadow-sm ring-1 ring-zinc-900/5 dark:from-zinc-700 dark:to-zinc-800 dark:ring-zinc-100/5 sm:size-20">
+                            <flux:icon name="queue-list" class="size-8 text-zinc-400 dark:text-zinc-500 sm:size-9" />
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:text-base">{{ __('Your queue is empty') }}</p>
+                        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-500 sm:text-sm">{{ __('Add articles from your library to get started') }}</p>
+                    </div>
+                    <a
+                        href="{{ route('library') }}"
+                        class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:bg-zinc-800 hover:shadow-md active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 sm:text-sm"
+                    >
+                        <flux:icon name="plus" class="size-4" />
+                        {{ __('Browse Library') }}
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-@script
-<script>
-    Alpine.data('player', (token) => ({
-        audio: new Audio(),
-        isPlaying: false,
-        currentTime: 0,
-        duration: 0,
-        progress: 0,
-        queue: [],
-        currentIndex: -1,
-        currentTrack: null,
-        token: token,
-        isOnline: navigator.onLine,
+    <style>
+        /* Custom scrollbar for main content */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.12); }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
 
-        init() {
-            window.addEventListener('online', () => this.isOnline = true);
-            window.addEventListener('offline', () => this.isOnline = false);
+        /* Queue panel scrollbar */
+        .queue-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+        }
+        .queue-scrollbar:hover {
+            scrollbar-color: rgba(0,0,0,0.15) transparent;
+        }
+        .dark .queue-scrollbar:hover {
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
+        }
+        .queue-scrollbar::-webkit-scrollbar { width: 5px; }
+        .queue-scrollbar::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+        .queue-scrollbar::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+        .queue-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+        .queue-scrollbar:hover::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+        .dark .queue-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+        .dark .queue-scrollbar:hover::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
-            this.audio.addEventListener('timeupdate', () => {
-                this.currentTime = this.audio.currentTime;
-                this.progress = (this.currentTime / this.duration) * 100;
-                this.updatePositionState();
-            });
+        /* Equalizer animation for playing track */
+        @keyframes eq {
+            0%, 100% { transform: scaleY(0.4); }
+            50% { transform: scaleY(1); }
+        }
 
-            this.audio.addEventListener('loadedmetadata', () => {
-                this.duration = this.audio.duration;
-            });
+        .eq-bar {
+            animation: eq 0.8s ease-in-out infinite;
+        }
+        .eq-bar.animation-delay-100 {
+            animation-delay: 0.15s;
+        }
+        .eq-bar.animation-delay-200 {
+            animation-delay: 0.3s;
+        }
 
-            this.audio.addEventListener('ended', () => {
-                this.next();
-            });
-
-            window.addEventListener('play-playlist', async (e) => {
-                const response = await fetch(`/api/playlists/${e.detail.playlistId}`, {
-                    headers: { 'Authorization': `Bearer ${this.token}` }
-                });
-                const data = await response.json();
-                this.queue = data.playlist.items.map(item => item.article);
-                if (this.queue.length > 0) {
-                    this.playTrack(0);
-                }
-            });
-
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.setActionHandler('play', () => { this.audio.play(); this.isPlaying = true; });
-                navigator.mediaSession.setActionHandler('pause', () => { this.audio.pause(); this.isPlaying = false; });
-                navigator.mediaSession.setActionHandler('previoustrack', () => this.prev());
-                navigator.mediaSession.setActionHandler('nexttrack', () => this.next());
-                navigator.mediaSession.setActionHandler('seekto', (e) => { if (e.seekTime !== undefined) this.audio.currentTime = e.seekTime; });
+        /* Queue item animations */
+        .queue-item {
+            animation: queue-item-in 0.25s ease-out;
+        }
+        @keyframes queue-item-in {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
             }
-        },
-
-        togglePlay() {
-            if (!this.currentTrack) return;
-            if (this.isPlaying) {
-                this.audio.pause();
-            } else {
-                this.audio.play();
-            }
-            this.isPlaying = !this.isPlaying;
-        },
-
-            async playTrack(index) {
-                this.currentIndex = index;
-                this.currentTrack = this.queue[index];
-                
-                // Try to get from cache first
-                if (window.AudioCache) {
-                    const cachedResponse = await window.AudioCache.getAudio(this.currentTrack.id, this.token);
-                    if (cachedResponse) {
-                        const blob = await cachedResponse.blob();
-                        this.audio.src = URL.createObjectURL(blob);
-                    } else {
-                        this.audio.src = `/api/articles/${this.currentTrack.id}/audio?token=${this.token}`;
-                    }
-                } else {
-                    this.audio.src = `/api/articles/${this.currentTrack.id}/audio?token=${this.token}`;
-                }
-
-                this.audio.play();
-                this.isPlaying = true;
-                this.updateMetadata();
-
-                if (window.MetadataDB) {
-                    window.MetadataDB.set(this.currentTrack);
-                }
-            },
-
-        next() {
-            if (this.currentIndex < this.queue.length - 1) {
-                this.playTrack(this.currentIndex + 1);
-            }
-        },
-
-        prev() {
-            if (this.currentIndex > 0) {
-                this.playTrack(this.currentIndex - 1);
-            }
-        },
-
-        seek(e) {
-            if (!this.duration) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const percent = x / rect.width;
-            this.audio.currentTime = percent * this.duration;
-        },
-
-        removeFromQueue(index) {
-            this.queue.splice(index, 1);
-            if (index === this.currentIndex) {
-                this.audio.pause();
-                this.currentTrack = null;
-                this.isPlaying = false;
-                this.currentIndex = -1;
-            } else if (index < this.currentIndex) {
-                this.currentIndex--;
-            }
-        },
-
-        formatTime(seconds) {
-            if (!seconds || isNaN(seconds)) return '0:00';
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        },
-
-        updateMetadata() {
-            if ('mediaSession' in navigator && this.currentTrack) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: this.currentTrack.title || this.currentTrack.url,
-                    artist: 'Utlut',
-                    album: 'Articles',
-                    artwork: [{ src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }]
-                });
-            }
-        },
-
-        updatePositionState() {
-            if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession && this.duration > 0) {
-                navigator.mediaSession.setPositionState({ duration: this.duration, playbackRate: 1, position: this.currentTime });
+            to {
+                opacity: 1;
+                transform: translateX(0);
             }
         }
-    }))
-</script>
-@endscript
 
-<style>
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(0,0,0,0.1);
-        border-radius: 10px;
-    }
-    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.1);
-    }
-</style>
+        /* Active item subtle glow */
+        .queue-item-active {
+            animation: active-pulse 2s ease-in-out infinite;
+        }
+        @keyframes active-pulse {
+            0%, 100% { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+            50% { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        }
+        .dark .queue-item-active {
+            animation: active-pulse-dark 2s ease-in-out infinite;
+        }
+        @keyframes active-pulse-dark {
+            0%, 100% { box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+            50% { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        }
+
+        /* Smooth transitions for queue panel on responsive */
+        .queue-panel {
+            transition: width 0.3s ease, border 0.2s ease;
+        }
+
+        /* Better touch targets on mobile */
+        @media (max-width: 640px) {
+            .queue-item {
+                min-height: 56px;
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .queue-panel {
+                max-height: 40vh;
+            }
+        }
+    </style>
 </div>
 

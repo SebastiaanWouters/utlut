@@ -1,9 +1,12 @@
 <?php
 
 use App\Models\Article;
+use App\Models\DeviceToken;
 use App\Models\Playlist;
 use App\Models\PlaylistItem;
+use App\Services\UrlContentExtractor;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Layout;
@@ -15,6 +18,10 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
 
     public string $search = '';
     public string $status = 'all';
+    public string $addUrl = '';
+    public bool $isExtracting = false;
+    public ?string $extractError = null;
+    public string $extractionStep = ''; // '', 'fetching', 'extracting', 'saving'
 
     #[Computed]
     public function articles()
@@ -67,80 +74,203 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     public function play(Article $article): void
     {
         $this->dispatch('play-article', articleId: $article->id);
+        $this->redirect(route('player'), navigate: true);
+    }
+
+    public function addFromUrl(): void
+    {
+        $this->validate([
+            'addUrl' => ['required', 'url', 'max:2048'],
+        ]);
+
+        $this->isExtracting = true;
+        $this->extractError = null;
+        $this->extractionStep = 'fetching';
+
+        try {
+            $extractor = app(UrlContentExtractor::class);
+            $result = $extractor->extract($this->addUrl);
+
+            $this->extractionStep = 'saving';
+
+            $deviceToken = Auth::user()->deviceTokens()->first();
+
+            if (! $deviceToken) {
+                $rawToken = Str::random(32);
+                $deviceToken = Auth::user()->deviceTokens()->create([
+                    'name' => 'Web',
+                    'token' => $rawToken,
+                    'token_hash' => hash('sha256', $rawToken),
+                ]);
+            }
+
+            $article = Article::updateOrCreate(
+                [
+                    'device_token_id' => $deviceToken->id,
+                    'url' => $this->addUrl,
+                ],
+                [
+                    'title' => $result['title'],
+                    'body' => $result['body'],
+                ]
+            );
+
+            \App\Jobs\GenerateArticleAudio::dispatch($article);
+
+            $this->addUrl = '';
+            $this->extractionStep = '';
+            $this->dispatch('close-modal', name: 'add-from-url');
+            $this->resetPage();
+        } catch (\Exception $e) {
+            $this->extractError = 'Failed to extract article. Please check the URL and try again.';
+            $this->extractionStep = '';
+        } finally {
+            $this->isExtracting = false;
+        }
+    }
+
+    public function resetAddModal(): void
+    {
+        $this->addUrl = '';
+        $this->extractError = null;
+        $this->isExtracting = false;
+        $this->extractionStep = '';
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-8 rounded-xl p-4 md:p-8">
-    <div class="flex items-center justify-between">
-        <div class="flex flex-col gap-2">
-            <flux:heading level="1" size="xl">{{ __('Library') }}</flux:heading>
-            <flux:text variant="subtle" class="text-sm">{{ __('Your collection of articles and saved web pages.') }}</flux:text>
+<div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Library') }}</h1>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Your saved articles') }}</p>
         </div>
+        <flux:modal.trigger name="add-from-url">
+            <flux:button icon="plus" variant="primary">{{ __('Add URL') }}</flux:button>
+        </flux:modal.trigger>
     </div>
 
-    <div class="flex flex-col md:flex-row gap-4">
+    <!-- Filters -->
+    <div class="flex flex-col gap-3 sm:flex-row">
         <div class="flex-1">
-            <flux:input 
-                wire:model.live.debounce.300ms="search" 
-                icon="magnifying-glass" 
-                placeholder="{{ __('Search articles...') }}" 
+            <flux:input
+                wire:model.live.debounce.300ms="search"
+                icon="magnifying-glass"
+                placeholder="{{ __('Search...') }}"
             />
         </div>
-        <div class="w-full md:w-48">
+        <div class="w-full sm:w-40">
             <flux:select wire:model.live="status">
-                <flux:select.option value="all">{{ __('All Status') }}</flux:select.option>
+                <flux:select.option value="all">{{ __('All') }}</flux:select.option>
                 <flux:select.option value="ready">{{ __('Ready') }}</flux:select.option>
-                <flux:select.option value="pending">{{ __('Pending') }}</flux:select.option>
+                <flux:select.option value="pending">{{ __('Processing') }}</flux:select.option>
             </flux:select>
         </div>
     </div>
 
+    <!-- Content -->
     @if ($this->articles->isEmpty())
-        <div class="flex flex-col items-center justify-center gap-4 py-12 text-center">
-            <flux:icon name="document-text" size="xl" class="text-zinc-400 dark:text-zinc-600" />
-            <div class="flex flex-col gap-2">
-                <flux:heading level="2" size="lg">{{ __('No articles found') }}</flux:heading>
-                <flux:text variant="subtle">{{ __('Start saving articles using the iOS Shortcut.') }}</flux:text>
+        <div class="flex flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-zinc-200 bg-white p-12 dark:border-zinc-700 dark:bg-zinc-800">
+            <div class="flex size-14 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-700">
+                <flux:icon.document-text class="size-7 text-zinc-400 dark:text-zinc-500" />
             </div>
+            <div class="flex flex-col gap-1 text-center">
+                <h2 class="text-base font-medium text-zinc-900 dark:text-zinc-100">{{ __('No articles yet') }}</h2>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Save pages from Safari using the iOS Shortcut.') }}</p>
+            </div>
+            <flux:button variant="ghost" icon="cog" :href="route('setup')" wire:navigate>
+                {{ __('Setup Instructions') }}
+            </flux:button>
         </div>
     @else
         <div class="flex flex-col gap-2">
             @foreach ($this->articles as $article)
-                <div wire:key="article-{{ $article->id }}" class="group flex items-center gap-4 rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800/50">
-                    <div class="flex-1 flex flex-col gap-1 overflow-hidden">
-                        <div class="flex items-center gap-2">
-                            <flux:heading level="3" size="md" class="truncate">{{ $article->title ?: $article->url }}</flux:heading>
+                @php
+                    $host = parse_url($article->url, PHP_URL_HOST);
+                    $host = $host ? Str::replaceStart('www.', '', $host) : $article->url;
+                @endphp
+
+                <div wire:key="article-{{ $article->id }}"
+                    class="group flex items-center gap-4 rounded-xl border bg-white p-3 transition-colors dark:bg-zinc-800 sm:p-4"
+                    :class="($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }}) ? 'border-zinc-900 dark:border-zinc-100' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'"
+                >
+                    <!-- Status Icon -->
+                    <div class="flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors"
+                        :class="($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }})
+                            ? 'bg-zinc-900 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                            : '{{ $article->audio_url ? 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300' : 'bg-zinc-100 text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500' }}'"
+                    >
+                        <template x-if="$store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }} && $store.player.isPlaying">
+                            <div class="flex items-center gap-px">
+                                <span class="h-2.5 w-0.5 animate-[bounce_0.6s_ease-in-out_infinite] rounded-full bg-current"></span>
+                                <span class="h-3.5 w-0.5 animate-[bounce_0.6s_ease-in-out_infinite_0.1s] rounded-full bg-current"></span>
+                                <span class="h-2 w-0.5 animate-[bounce_0.6s_ease-in-out_infinite_0.2s] rounded-full bg-current"></span>
+                            </div>
+                        </template>
+                        <template x-if="!($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }} && $store.player.isPlaying)">
                             @if ($article->audio_url)
-                                <flux:badge variant="success" size="sm" class="lowercase text-[10px]">{{ __('Ready') }}</flux:badge>
+                                <flux:icon.play variant="solid" class="size-4" />
                             @else
-                                <flux:badge variant="warning" size="sm" class="lowercase text-[10px]">{{ __('Pending') }}</flux:badge>
+                                <flux:icon.clock variant="outline" class="size-4" />
                             @endif
-                        </div>
-                        <flux:text variant="subtle" class="truncate text-xs">{{ $article->url }}</flux:text>
+                        </template>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <!-- Content -->
+                    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <div class="flex items-center gap-2">
+                            <h3 class="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                {{ $article->title ?: $article->url }}
+                            </h3>
+                            @if (!$article->audio_url)
+                                <span class="shrink-0 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                                    {{ __('Processing') }}
+                                </span>
+                            @endif
+                        </div>
+                        <p class="truncate text-xs text-zinc-400 dark:text-zinc-500">{{ $host }}</p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center gap-1">
                         @if ($article->audio_url)
-                            <flux:button icon="play" variant="ghost" size="sm" wire:click="play({{ $article->id }})">{{ __('Play') }}</flux:button>
+                            <button
+                                wire:click="play({{ $article->id }})"
+                                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                                :class="($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }})
+                                    ? 'bg-zinc-900 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                                    : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600'"
+                            >
+                                <template x-if="$store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }}">
+                                    <span>{{ __('Playing') }}</span>
+                                </template>
+                                <template x-if="!($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }})">
+                                    <span>{{ __('Play') }}</span>
+                                </template>
+                            </button>
                         @else
-                            <flux:button icon="bolt" variant="ghost" size="sm" wire:click="generateAudio({{ $article->id }})">{{ __('Generate') }}</flux:button>
+                            <flux:button size="sm" variant="ghost" wire:click="generateAudio({{ $article->id }})">{{ __('Generate') }}</flux:button>
                         @endif
 
                         <flux:dropdown position="bottom" align="end">
-                            <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" icon-only />
+                            <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" icon-only class="text-zinc-400" />
                             <flux:menu>
-                                <flux:menu.item icon="play" wire:click="play({{ $article->id }})">{{ __('Play Now') }}</flux:menu.item>
-                                <flux:menu.separator />
-                                <flux:menu.group heading="{{ __('Add to Playlist') }}">
-                                    @foreach ($this->playlists as $playlist)
-                                        <flux:menu.item wire:click="addToPlaylist({{ $article->id }}, {{ $playlist->id }})">
-                                            {{ $playlist->name }}
-                                        </flux:menu.item>
-                                    @endforeach
-                                    @if ($this->playlists->isEmpty())
-                                        <flux:menu.item disabled>{{ __('No playlists') }}</flux:menu.item>
-                                    @endif
-                                </flux:menu.group>
+                                <flux:menu.item
+                                    icon="play"
+                                    wire:click="play({{ $article->id }})"
+                                >
+                                    {{ __('Play Now') }}
+                                </flux:menu.item>
+                                @if ($this->playlists->isNotEmpty())
+                                    <flux:menu.separator />
+                                    <flux:menu.group heading="{{ __('Add to Playlist') }}">
+                                        @foreach ($this->playlists as $playlist)
+                                            <flux:menu.item wire:click="addToPlaylist({{ $article->id }}, {{ $playlist->id }})">
+                                                {{ $playlist->name }}
+                                            </flux:menu.item>
+                                        @endforeach
+                                    </flux:menu.group>
+                                @endif
                             </flux:menu>
                         </flux:dropdown>
                     </div>
@@ -148,9 +278,84 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
             @endforeach
         </div>
 
-        <div class="mt-4">
+        <div class="mt-2">
             {{ $this->articles->links() }}
         </div>
     @endif
+
+    <!-- Add URL Modal -->
+    <flux:modal name="add-from-url" class="md:w-[440px]" x-on:close="$wire.resetAddModal()">
+        <div class="flex flex-col gap-5">
+            <div>
+                <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Add from URL') }}</h2>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paste an article URL to convert to audio.') }}</p>
+            </div>
+
+            <form wire:submit="addFromUrl" class="flex flex-col gap-4">
+                <flux:field>
+                    <flux:label>{{ __('URL') }}</flux:label>
+                    <flux:input
+                        wire:model="addUrl"
+                        type="url"
+                        placeholder="https://..."
+                        :disabled="$isExtracting"
+                        autofocus
+                    />
+                    <flux:error name="addUrl" />
+                </flux:field>
+
+                @if ($extractError)
+                    <div class="flex items-start gap-3 rounded-lg bg-red-50 p-3 dark:bg-red-950/50">
+                        <flux:icon.exclamation-circle class="mt-0.5 size-5 shrink-0 text-red-500 dark:text-red-400" />
+                        <p class="text-sm text-red-600 dark:text-red-400">{{ $extractError }}</p>
+                    </div>
+                @endif
+
+                <!-- Loading indicator (shows immediately when request starts) -->
+                <div wire:loading wire:target="addFromUrl" class="flex flex-col gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
+                    <div class="flex items-center gap-3">
+                        <div class="relative flex size-8 items-center justify-center">
+                            <svg class="size-8 -rotate-90" viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" r="16" fill="none" class="stroke-zinc-200 dark:stroke-zinc-700" stroke-width="3"></circle>
+                                <circle cx="18" cy="18" r="16" fill="none" class="stroke-zinc-900 dark:stroke-zinc-100" stroke-width="3" stroke-dasharray="100" stroke-dashoffset="50" stroke-linecap="round"></circle>
+                            </svg>
+                            <svg class="absolute size-4 animate-spin text-zinc-600 dark:text-zinc-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Extracting article...') }}</p>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('This may take a few moments') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                    <flux:modal.close>
+                        <flux:button variant="ghost" wire:loading.attr="disabled" wire:target="addFromUrl">{{ __('Cancel') }}</flux:button>
+                    </flux:modal.close>
+                    <button
+                        type="submit"
+                        wire:loading.attr="disabled"
+                        wire:target="addFromUrl"
+                        class="inline-flex min-w-[120px] items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-100 dark:focus:ring-offset-zinc-900"
+                    >
+                        <span wire:loading.remove wire:target="addFromUrl" class="inline-flex items-center gap-2">
+                            <flux:icon.plus class="size-4" />
+                            <span>{{ __('Add Article') }}</span>
+                        </span>
+                        <span wire:loading wire:target="addFromUrl" class="inline-flex items-center gap-2">
+                            <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>{{ __('Adding...') }}</span>
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </flux:modal>
 </div>
 

@@ -121,6 +121,84 @@
 
         {{ $slot }}
 
+        {{-- Mini Player Bar --}}
+        @unless(request()->routeIs('player'))
+        <div
+            x-data
+            x-show="$store.player.currentTrack"
+            x-cloak
+            class="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 backdrop-blur-lg dark:border-zinc-700 dark:bg-zinc-900/95 lg:left-64"
+        >
+            {{-- Progress bar at top edge --}}
+            <div class="absolute inset-x-0 top-0 h-0.5 bg-zinc-200 dark:bg-zinc-700">
+                <div
+                    class="h-full bg-zinc-900 transition-all duration-150 ease-out dark:bg-zinc-100"
+                    :style="{ width: $store.player.progress + '%' }"
+                ></div>
+            </div>
+
+            <div class="flex h-16 items-center gap-3 px-4 sm:gap-4 sm:px-6">
+                {{-- Track Info (clickable to navigate to full player) --}}
+                <a
+                    href="{{ route('player') }}"
+                    wire:navigate
+                    class="flex min-w-0 flex-1 items-center gap-3"
+                >
+                    {{-- Mini album art / icon --}}
+                    <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                        <flux:icon name="musical-note" class="size-5 text-zinc-400 dark:text-zinc-500" />
+                    </div>
+
+                    {{-- Track title and time --}}
+                    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span
+                            class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100"
+                            x-text="$store.player.currentTrack?.title || $store.player.currentTrack?.url || '{{ __('Now Playing') }}'"
+                        ></span>
+                        <span
+                            class="truncate text-xs text-zinc-500 dark:text-zinc-400"
+                            x-text="$store.player.formatTime($store.player.currentTime) + ' / ' + $store.player.formatTime($store.player.duration)"
+                        ></span>
+                    </div>
+                </a>
+
+                {{-- Controls --}}
+                <div class="flex shrink-0 items-center gap-1 sm:gap-2">
+                    {{-- Previous --}}
+                    <button
+                        class="flex size-9 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                        @click="$store.player.prev()"
+                        :disabled="$store.player.currentIndex <= 0"
+                    >
+                        <flux:icon name="backward" class="size-5" />
+                    </button>
+
+                    {{-- Play/Pause --}}
+                    <button
+                        class="flex size-11 items-center justify-center rounded-full bg-zinc-900 text-white shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900"
+                        @click="$store.player.togglePlay()"
+                    >
+                        <template x-if="$store.player.isPlaying">
+                            <flux:icon name="pause" class="size-5" />
+                        </template>
+                        <template x-if="!$store.player.isPlaying">
+                            <flux:icon name="play" class="ml-0.5 size-5" />
+                        </template>
+                    </button>
+
+                    {{-- Next --}}
+                    <button
+                        class="flex size-9 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 disabled:hover:bg-transparent dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                        @click="$store.player.next()"
+                        :disabled="$store.player.currentIndex >= $store.player.queue.length - 1"
+                    >
+                        <flux:icon name="forward" class="size-5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endunless
+
         @fluxScripts
     </body>
 </html>
