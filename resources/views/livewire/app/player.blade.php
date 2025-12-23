@@ -141,13 +141,13 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                                 <flux:icon name="chevron-up-down" class="size-3 opacity-50" />
                             </button>
                             <flux:menu class="min-w-[80px]">
-                                <flux:menu.item @click="$store.player.setPlaybackRate(0.5)" :class="$store.player.playbackRate === 0.5 && 'bg-zinc-100 dark:bg-zinc-700'">0.5x</flux:menu.item>
-                                <flux:menu.item @click="$store.player.setPlaybackRate(0.75)" :class="$store.player.playbackRate === 0.75 && 'bg-zinc-100 dark:bg-zinc-700'">0.75x</flux:menu.item>
-                                <flux:menu.item @click="$store.player.setPlaybackRate(1)" :class="$store.player.playbackRate === 1 && 'bg-zinc-100 dark:bg-zinc-700'">1x</flux:menu.item>
-                                <flux:menu.item @click="$store.player.setPlaybackRate(1.25)" :class="$store.player.playbackRate === 1.25 && 'bg-zinc-100 dark:bg-zinc-700'">1.25x</flux:menu.item>
-                                <flux:menu.item @click="$store.player.setPlaybackRate(1.5)" :class="$store.player.playbackRate === 1.5 && 'bg-zinc-100 dark:bg-zinc-700'">1.5x</flux:menu.item>
-                                <flux:menu.item @click="$store.player.setPlaybackRate(1.75)" :class="$store.player.playbackRate === 1.75 && 'bg-zinc-100 dark:bg-zinc-700'">1.75x</flux:menu.item>
-                                <flux:menu.item @click="$store.player.setPlaybackRate(2)" :class="$store.player.playbackRate === 2 && 'bg-zinc-100 dark:bg-zinc-700'">2x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(0.5)">0.5x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(0.75)">0.75x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1)">1x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1.25)">1.25x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1.5)">1.5x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1.75)">1.75x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(2)">2x</flux:menu.item>
                             </flux:menu>
                         </flux:dropdown>
                         <span x-text="$store.player.formatTime($store.player.duration)">0:00</span>
