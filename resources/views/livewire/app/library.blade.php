@@ -341,7 +341,6 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                             @elseif ($article->extraction_status === 'ready')
                                 <x-audio-progress-badge
                                     :progress="$article->audio?->progress_percent ?? 0"
-                                    :etaSeconds="$this->calculateEta($article)"
                                 />
                             @endif
                         </div>

@@ -1,4 +1,4 @@
-@props(['progress' => 0, 'etaSeconds' => null])
+@props(['progress' => 0])
 
 <span class="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
     {{-- Progress circle --}}
@@ -24,10 +24,4 @@
     </svg>
 
     <span>{{ $progress }}%</span>
-
-    @if($etaSeconds !== null && $etaSeconds > 0)
-        <span class="text-zinc-400 dark:text-zinc-500">
-            (~{{ $etaSeconds < 60 ? (int) $etaSeconds . 's' : (int) ceil($etaSeconds / 60) . 'm' }})
-        </span>
-    @endif
 </span>

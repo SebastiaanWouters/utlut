@@ -162,7 +162,8 @@ class ArticleController extends Controller
         }
 
         // If it's a local path, we serve it from storage
-        if (! Storage::disk('public')->exists($audio->audio_path)) {
+        $disk = config('filesystems.default');
+        if (! Storage::disk($disk)->exists($audio->audio_path)) {
             return response()->json([
                 'ok' => false,
                 'status' => 'failed',
@@ -170,7 +171,7 @@ class ArticleController extends Controller
             ], 404);
         }
 
-        return Storage::disk('public')->response($audio->audio_path);
+        return Storage::disk($disk)->response($audio->audio_path);
     }
 
     /**

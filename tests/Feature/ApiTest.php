@@ -191,6 +191,7 @@ test('POST /api/articles/{id}/tts is idempotent', function () {
 });
 
 test('GET /api/articles/{id}/audio returns audio when ready', function () {
+    config(['filesystems.default' => 'public']);
     Storage::fake('public');
     $user = User::factory()->create();
     $token = 'test-token';

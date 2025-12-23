@@ -38,6 +38,7 @@ test('audio endpoint returns 409 when audio is not ready', function () {
 });
 
 test('audio endpoint downloads audio when ready and stored locally', function () {
+    config(['filesystems.default' => 'public']);
     Storage::fake('public');
 
     $user = User::factory()->create();
