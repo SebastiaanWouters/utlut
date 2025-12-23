@@ -107,16 +107,12 @@ function createPlayerStore() {
 
             audio.addEventListener('play', () => {
                 this.isPlaying = true;
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.playbackState = 'playing';
-                }
+                this.updatePlaybackState();
             });
 
             audio.addEventListener('pause', () => {
                 this.isPlaying = false;
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.playbackState = 'paused';
-                }
+                this.updatePlaybackState();
             });
 
             audio.addEventListener('timeupdate', () => {
@@ -205,34 +201,51 @@ function createPlayerStore() {
                 await this.playNext(articleId);
             });
 
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.setActionHandler('play', () => {
-                    audio.play();
-                });
-                navigator.mediaSession.setActionHandler('pause', () => {
-                    audio.pause();
-                });
-                navigator.mediaSession.setActionHandler('previoustrack', () => this.prev());
-                navigator.mediaSession.setActionHandler('nexttrack', () => this.next());
-                navigator.mediaSession.setActionHandler('seekto', (e) => {
-                    if (e.seekTime === undefined) {
-                        return;
-                    }
+            this.setupMediaSession();
+        },
 
-                    audio.currentTime = e.seekTime;
-                    this.currentTime = audio.currentTime || 0;
-                    this.syncProgress();
-                });
-                navigator.mediaSession.setActionHandler('seekforward', () => {
-                    audio.currentTime = Math.min(audio.currentTime + 30, audio.duration || audio.currentTime);
-                    this.currentTime = audio.currentTime || 0;
-                    this.syncProgress();
-                });
-                navigator.mediaSession.setActionHandler('seekbackward', () => {
-                    audio.currentTime = Math.max(audio.currentTime - 30, 0);
-                    this.currentTime = audio.currentTime || 0;
-                    this.syncProgress();
-                });
+        setupMediaSession() {
+            if (!('mediaSession' in navigator)) {
+                return;
+            }
+
+            navigator.mediaSession.setActionHandler('play', () => audio.play());
+            navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+
+            navigator.mediaSession.setActionHandler('previoustrack', () => {
+                audio.currentTime = 0;
+            });
+
+            navigator.mediaSession.setActionHandler('nexttrack', () => this.next());
+
+            navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                const skipTime = details.seekOffset || 15;
+                audio.currentTime = Math.max(audio.currentTime - skipTime, 0);
+                this.currentTime = audio.currentTime || 0;
+                this.syncProgress();
+            });
+
+            navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                const skipTime = details.seekOffset || 15;
+                audio.currentTime = Math.min(audio.currentTime + skipTime, audio.duration || audio.currentTime);
+                this.currentTime = audio.currentTime || 0;
+                this.syncProgress();
+            });
+
+            navigator.mediaSession.setActionHandler('seekto', (details) => {
+                if (details.fastSeek && 'fastSeek' in audio) {
+                    audio.fastSeek(details.seekTime);
+                    return;
+                }
+                audio.currentTime = details.seekTime;
+                this.currentTime = audio.currentTime || 0;
+                this.syncProgress();
+            });
+        },
+
+        updatePlaybackState() {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
             }
         },
 
