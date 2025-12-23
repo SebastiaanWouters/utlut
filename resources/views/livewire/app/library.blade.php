@@ -27,13 +27,14 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     {
         $deviceTokenIds = Auth::user()->deviceTokens()->pluck('id');
 
-        return Article::whereIn('device_token_id', $deviceTokenIds)
+        return Article::with('audio')
+            ->whereIn('device_token_id', $deviceTokenIds)
             ->when($this->search, function ($q) {
                 $q->where('title', 'like', "%{$this->search}%")
-                  ->orWhere('url', 'like', "%{$this->search}%");
+                    ->orWhere('url', 'like', "%{$this->search}%");
             })
-            ->when($this->status === 'ready', fn($q) => $q->whereNotNull('audio_url'))
-            ->when($this->status === 'pending', fn($q) => $q->whereNull('audio_url'))
+            ->when($this->status === 'ready', fn ($q) => $q->whereNotNull('audio_url'))
+            ->when($this->status === 'pending', fn ($q) => $q->whereNull('audio_url'))
             ->latest()
             ->paginate(20);
     }
@@ -46,11 +47,19 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     }
 
     #[Computed]
-    public function hasExtractingArticles(): bool
+    public function hasProcessingArticles(): bool
     {
         $deviceTokenIds = Auth::user()->deviceTokens()->pluck('id');
+
         return Article::whereIn('device_token_id', $deviceTokenIds)
-            ->where('extraction_status', 'extracting')
+            ->where(function ($q) {
+                $q->where('extraction_status', 'extracting')
+                    ->orWhere(function ($q2) {
+                        $q2->where('extraction_status', 'ready')
+                            ->whereNull('audio_url')
+                            ->whereDoesntHave('audio', fn ($q3) => $q3->where('status', 'failed'));
+                    });
+            })
             ->exists();
     }
 
@@ -124,7 +133,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
             ExtractArticleContent::dispatch($article);
 
             $this->addUrl = '';
-            $this->dispatch('close-modal', name: 'add-from-url');
+            $this->modal('add-from-url')->close();
             $this->resetPage();
         } catch (\Exception $e) {
             $this->extractError = 'Failed to add article. Please try again.';
@@ -151,7 +160,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
 }; ?>
 
 <div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8"
-    @if($this->hasExtractingArticles) wire:poll.3s @endif>
+    @if($this->hasProcessingArticles) wire:poll.3s @endif>
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -270,9 +279,17 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                 <span x-show="cached" x-cloak class="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
                                     {{ __('Offline') }}
                                 </span>
+                            @elseif ($article->audio?->status === 'failed')
+                                <span class="shrink-0 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                    {{ __('Audio failed') }}
+                                </span>
                             @elseif ($article->extraction_status === 'ready')
-                                <span class="shrink-0 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
-                                    {{ __('Processing audio') }}
+                                <span class="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
+                                    <svg class="size-2.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    {{ __('Generating audio') }}
                                 </span>
                             @endif
                         </div>
@@ -306,8 +323,16 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                     <span>{{ __('Play') }}</span>
                                 </template>
                             </button>
+                        @elseif ($article->audio?->status === 'failed')
+                            <flux:button size="sm" variant="ghost" wire:click="generateAudio({{ $article->id }})">{{ __('Retry') }}</flux:button>
                         @elseif ($article->extraction_status === 'ready')
-                            <flux:button size="sm" variant="ghost" wire:click="generateAudio({{ $article->id }})">{{ __('Generate') }}</flux:button>
+                            <span class="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500">
+                                <svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                {{ __('Generating...') }}
+                            </span>
                         @endif
 
                         <flux:dropdown position="bottom" align="end">

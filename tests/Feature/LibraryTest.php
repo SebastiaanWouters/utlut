@@ -101,3 +101,70 @@ test('deleting article cleans up audio file from storage', function () {
     expect($article->fresh())->toBeNull();
     Storage::disk('public')->assertMissing('audio/test-file.mp3');
 });
+
+test('hasProcessingArticles returns true when articles are extracting', function () {
+    $user = User::factory()->create();
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    Article::factory()->create([
+        'device_token_id' => $deviceToken->id,
+        'extraction_status' => 'extracting',
+    ]);
+
+    $this->actingAs($user);
+
+    $component = Volt::test('app.library');
+    expect($component->get('hasProcessingArticles'))->toBeTrue();
+});
+
+test('hasProcessingArticles returns true when audio is being generated', function () {
+    $user = User::factory()->create();
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    $article = Article::factory()->create([
+        'device_token_id' => $deviceToken->id,
+        'extraction_status' => 'ready',
+        'audio_url' => null,
+    ]);
+    ArticleAudio::factory()->create([
+        'article_id' => $article->id,
+        'status' => 'pending',
+    ]);
+
+    $this->actingAs($user);
+
+    $component = Volt::test('app.library');
+    expect($component->get('hasProcessingArticles'))->toBeTrue();
+});
+
+test('hasProcessingArticles returns false when audio generation failed', function () {
+    $user = User::factory()->create();
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    $article = Article::factory()->create([
+        'device_token_id' => $deviceToken->id,
+        'extraction_status' => 'ready',
+        'audio_url' => null,
+    ]);
+    ArticleAudio::factory()->create([
+        'article_id' => $article->id,
+        'status' => 'failed',
+    ]);
+
+    $this->actingAs($user);
+
+    $component = Volt::test('app.library');
+    expect($component->get('hasProcessingArticles'))->toBeFalse();
+});
+
+test('hasProcessingArticles returns false when all articles are ready', function () {
+    $user = User::factory()->create();
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    Article::factory()->create([
+        'device_token_id' => $deviceToken->id,
+        'extraction_status' => 'ready',
+        'audio_url' => 'https://example.com/audio.mp3',
+    ]);
+
+    $this->actingAs($user);
+
+    $component = Volt::test('app.library');
+    expect($component->get('hasProcessingArticles'))->toBeFalse();
+});
