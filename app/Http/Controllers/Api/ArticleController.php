@@ -6,6 +6,7 @@ use App\Enums\AudioErrorCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SaveArticleRequest;
 use App\Http\Resources\ArticleResource;
+use App\Jobs\CleanArticleContent;
 use App\Jobs\ExtractArticleContent;
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
@@ -75,16 +76,12 @@ class ArticleController extends Controller
             ->where('url', $request->validated('url'))
             ->value('extraction_status');
 
-        // Build update attributes - only set title if provided and not empty
+        // Build update attributes - extraction_status is 'extracting' until cleanup/extraction completes
         $updateAttributes = [
-            'extraction_status' => $hasBody ? 'ready' : 'extracting',
+            'extraction_status' => 'extracting',
         ];
 
-        if ($hasBody) {
-            $updateAttributes['body'] = $request->validated('body');
-        }
-
-        // Only set title if explicitly provided and not empty
+        // Only set title if explicitly provided and not empty (will be refined by LLM)
         $title = $request->validated('title');
         if (! empty($title)) {
             $updateAttributes['title'] = $title;
@@ -98,10 +95,10 @@ class ArticleController extends Controller
             $updateAttributes
         );
 
-        if ($hasBody) {
-            // Body provided directly, generate audio
-            GenerateArticleAudio::dispatch($article);
-        } elseif ($existingStatus !== 'extracting') {
+        if ($hasBody && $existingStatus !== 'extracting') {
+            // Body provided directly (e.g., from iOS shortcut), clean it via LLM then generate audio
+            CleanArticleContent::dispatch($article, $request->validated('body'), $title);
+        } elseif (! $hasBody && $existingStatus !== 'extracting') {
             // No body provided and not already extracting, extract content from URL
             ExtractArticleContent::dispatch($article);
         }
