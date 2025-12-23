@@ -5,6 +5,8 @@ use App\Models\Article;
 use App\Models\ArticleAudio;
 use App\Models\DeviceToken;
 use App\Models\User;
+use App\Services\AudioChunker;
+use App\Services\AudioProgressEstimator;
 use App\Services\NagaTts;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -244,7 +246,7 @@ test('GenerateArticleAudio job updates article with audio url', function () {
         ->andReturn('fake audio content');
 
     $job = new GenerateArticleAudio($article);
-    $job->handle($ttsMock);
+    $job->handle($ttsMock, new AudioChunker, new AudioProgressEstimator);
 
     $this->assertDatabaseHas('article_audio', [
         'article_id' => $article->id,

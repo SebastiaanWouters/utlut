@@ -75,7 +75,7 @@ it('is idempotent and skips if already ready, file exists, and content matches',
     $mockTts->shouldNotReceive('generate');
 
     $job = new GenerateArticleAudio($article);
-    $job->handle($mockTts);
+    $job->handle($mockTts, new AudioChunker, new AudioProgressEstimator);
 
     expect(Storage::disk('public')->get('audio/1.mp3'))->toBe('existing content');
 });
@@ -100,7 +100,7 @@ it('re-generates if content has changed', function () {
         ->andReturn('new audio content');
 
     $job = new GenerateArticleAudio($article);
-    $job->handle($mockTts);
+    $job->handle($mockTts, new AudioChunker, new AudioProgressEstimator);
 
     $article->refresh();
     expect(Storage::disk('public')->get('audio/1.mp3'))->toBe('new audio content')
