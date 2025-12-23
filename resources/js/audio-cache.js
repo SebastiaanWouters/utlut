@@ -138,6 +138,23 @@ export const AudioCache = {
         const cache = await caches.open(this.CACHE_NAME);
         const url = `/api/articles/${articleId}/audio?token=${token}`;
         return await cache.delete(url);
+    },
+
+    async prefetch(articleId, token) {
+        const url = `/api/articles/${articleId}/audio?token=${token}`;
+        const cache = await caches.open(this.CACHE_NAME);
+
+        const existing = await cache.match(url);
+        if (existing) {
+            return true;
+        }
+
+        const response = await fetch(url);
+        if (response.ok) {
+            await cache.put(url, response);
+            return true;
+        }
+        return false;
     }
 };
 

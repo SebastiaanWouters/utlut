@@ -168,6 +168,16 @@ function createPlayerStore() {
                     this.currentTime = audio.currentTime || 0;
                     this.syncProgress();
                 });
+                navigator.mediaSession.setActionHandler('seekforward', () => {
+                    audio.currentTime = Math.min(audio.currentTime + 30, audio.duration || audio.currentTime);
+                    this.currentTime = audio.currentTime || 0;
+                    this.syncProgress();
+                });
+                navigator.mediaSession.setActionHandler('seekbackward', () => {
+                    audio.currentTime = Math.max(audio.currentTime - 30, 0);
+                    this.currentTime = audio.currentTime || 0;
+                    this.syncProgress();
+                });
             }
         },
 
@@ -285,6 +295,12 @@ function createPlayerStore() {
 
             if (window.MetadataDB) {
                 window.MetadataDB.set(JSON.parse(JSON.stringify(this.currentTrack)));
+            }
+
+            // Pre-cache next track in background
+            if (index + 1 < this.queue.length && window.AudioCache) {
+                const nextTrack = this.queue[index + 1];
+                window.AudioCache.prefetch(nextTrack.id, this.token).catch(() => {});
             }
         },
 
@@ -492,7 +508,12 @@ function createPlayerStore() {
                 title: this.currentTrack.title || this.currentTrack.url,
                 artist: 'Utlut',
                 album: 'Articles',
-                artwork: [{ src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+                artwork: [
+                    { src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' },
+                    { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+                    { src: '/icons/icon-256.png', sizes: '256x256', type: 'image/png' },
+                    { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+                ],
             });
         },
 
