@@ -20,6 +20,8 @@ class ArticleResource extends JsonResource
             'title' => $this->title,
             'body' => $this->body,
             'audio_url' => $this->audio_url,
+            'extraction_status' => $this->extraction_status,
+            'audio_status' => $this->audio?->status ?? 'pending',
             'status' => $this->audio?->status ?? 'pending',
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

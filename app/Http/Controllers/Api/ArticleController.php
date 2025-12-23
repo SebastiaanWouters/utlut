@@ -70,29 +70,47 @@ class ArticleController extends Controller
         $deviceToken = $request->input('device_token');
         $hasBody = ! empty($request->validated('body'));
 
+        // Check if article already exists and is extracting (to avoid duplicate jobs)
+        $existingStatus = Article::where('device_token_id', $deviceToken->id)
+            ->where('url', $request->validated('url'))
+            ->value('extraction_status');
+
+        // Build update attributes - only set title if provided and not empty
+        $updateAttributes = [
+            'extraction_status' => $hasBody ? 'ready' : 'extracting',
+        ];
+
+        if ($hasBody) {
+            $updateAttributes['body'] = $request->validated('body');
+        }
+
+        // Only set title if explicitly provided and not empty
+        $title = $request->validated('title');
+        if (! empty($title)) {
+            $updateAttributes['title'] = $title;
+        }
+
         $article = Article::updateOrCreate(
             [
                 'device_token_id' => $deviceToken->id,
                 'url' => $request->validated('url'),
             ],
-            [
-                'title' => $request->validated('title'),
-                'body' => $request->validated('body'),
-                'extraction_status' => $hasBody ? 'ready' : 'extracting',
-            ]
+            $updateAttributes
         );
 
         if ($hasBody) {
             // Body provided directly, generate audio
             GenerateArticleAudio::dispatch($article);
-        } else {
-            // No body provided, extract content from URL first
+        } elseif ($existingStatus !== 'extracting') {
+            // No body provided and not already extracting, extract content from URL
             ExtractArticleContent::dispatch($article);
         }
 
         return response()->json([
             'ok' => true,
+            'id' => $article->id,
             'title' => $article->title ?: $article->url,
+            'extraction_status' => $article->extraction_status,
         ]);
     }
 
