@@ -4,6 +4,11 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MoeMizrak\LaravelOpenrouter\DTO\ChatData;
+use MoeMizrak\LaravelOpenrouter\DTO\MessageData;
+use MoeMizrak\LaravelOpenrouter\DTO\ResponseFormatData;
+use MoeMizrak\LaravelOpenrouter\Facades\LaravelOpenRouter;
+use MoeMizrak\LaravelOpenrouter\Types\RoleType;
 
 class UrlContentExtractor
 {
@@ -12,7 +17,7 @@ class UrlContentExtractor
     private const RETRY_DELAY_MS = 500;
 
     /**
-     * Fetch URL content and extract article title and body using DeepSeek.
+     * Fetch URL content and extract article title and body using OpenRouter LLM.
      *
      * @return array{title: string, body: string}
      */
@@ -22,9 +27,9 @@ class UrlContentExtractor
         $plainText = $this->htmlToPlainText($htmlContent);
 
         try {
-            return $this->extractWithDeepSeek($url, $plainText);
+            return $this->extractWithLlm($url, $plainText);
         } catch (\Exception $e) {
-            Log::warning('DeepSeek extraction failed, using fallback', [
+            Log::warning('LLM extraction failed, using fallback', [
                 'url' => $url,
                 'error' => $e->getMessage(),
             ]);
@@ -164,27 +169,26 @@ class UrlContentExtractor
     }
 
     /**
-     * Use DeepSeek to extract article title and body from text with retry logic.
+     * Use OpenRouter LLM to extract article title and body from text with retry logic.
      *
      * @return array{title: string, body: string}
      */
-    protected function extractWithDeepSeek(string $url, string $text): array
+    protected function extractWithLlm(string $url, string $text): array
     {
-        $nagaConfig = config('services.naga');
-        $extractorConfig = config('utlut.extractor');
+        $apiKey = config('laravel-openrouter.api_key');
 
-        if (! $nagaConfig['key']) {
-            throw new \Exception('Naga API key is not configured');
+        if (! $apiKey) {
+            throw new \Exception('OpenRouter API key is not configured');
         }
 
         $lastException = null;
 
         for ($attempt = 1; $attempt <= self::MAX_RETRIES; $attempt++) {
             try {
-                return $this->attemptDeepSeekExtraction($url, $text, $nagaConfig, $extractorConfig);
+                return $this->attemptLlmExtraction($url, $text);
             } catch (\Exception $e) {
                 $lastException = $e;
-                Log::warning('DeepSeek extraction attempt failed', [
+                Log::warning('LLM extraction attempt failed', [
                     'attempt' => $attempt,
                     'max_retries' => self::MAX_RETRIES,
                     'error' => $e->getMessage(),
@@ -196,19 +200,21 @@ class UrlContentExtractor
             }
         }
 
-        throw $lastException ?? new \Exception('DeepSeek extraction failed after retries');
+        throw $lastException ?? new \Exception('LLM extraction failed after retries');
     }
 
     /**
-     * Single attempt at DeepSeek extraction.
+     * Single attempt at LLM extraction using OpenRouter.
      *
-     * @param  array{key: string, url: string}  $nagaConfig
-     * @param  array{timeout: int, model: string, temperature: float, max_tokens: int}  $extractorConfig
      * @return array{title: string, body: string}
      */
-    protected function attemptDeepSeekExtraction(string $url, string $text, array $nagaConfig, array $extractorConfig): array
+    protected function attemptLlmExtraction(string $url, string $text): array
     {
-        $prompt = <<<PROMPT
+        $extractorConfig = config('utlut.extractor');
+
+        $systemPrompt = 'You are a helpful assistant that extracts article content from webpages. Always respond with valid JSON only.';
+
+        $userPrompt = <<<PROMPT
 Extract the main article content from the following webpage text. Return a JSON object with exactly two fields:
 - "title": The main headline/title of the article
 - "body": The main article content (only the article body text, no navigation, ads, or footer content)
@@ -224,36 +230,30 @@ Webpage text:
 Respond ONLY with valid JSON, no markdown or other formatting.
 PROMPT;
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer '.$nagaConfig['key'],
-            'Content-Type' => 'application/json',
-        ])->timeout($extractorConfig['timeout'])->post($nagaConfig['url'].'/v1/chat/completions', [
-            'model' => $extractorConfig['model'],
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => 'You are a helpful assistant that extracts article content from webpages. Always respond with valid JSON only.',
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $prompt,
-                ],
+        $chatData = new ChatData(
+            messages: [
+                new MessageData(
+                    content: $systemPrompt,
+                    role: RoleType::SYSTEM,
+                ),
+                new MessageData(
+                    content: $userPrompt,
+                    role: RoleType::USER,
+                ),
             ],
-            'temperature' => $extractorConfig['temperature'],
-            'max_tokens' => $extractorConfig['max_tokens'],
-        ]);
+            model: $extractorConfig['model'],
+            max_tokens: $extractorConfig['max_tokens'],
+            temperature: $extractorConfig['temperature'],
+            response_format: new ResponseFormatData(type: 'json_object'),
+        );
 
-        if ($response->failed()) {
-            throw new \Exception('API request failed: '.$response->status().' - '.$response->body());
+        $response = LaravelOpenRouter::chatRequest($chatData);
+
+        if (! $response || ! isset($response->choices[0])) {
+            throw new \Exception('API returned empty or invalid response');
         }
 
-        $result = $response->json();
-
-        if (! is_array($result)) {
-            throw new \Exception('API returned non-array response');
-        }
-
-        $content = $result['choices'][0]['message']['content'] ?? null;
+        $content = $response->choices[0]->message->content ?? null;
 
         if (empty($content) || ! is_string($content)) {
             throw new \Exception('API returned empty or invalid content');
@@ -298,12 +298,12 @@ PROMPT;
             }
         }
 
-        Log::error('DeepSeek returned unparseable content', [
+        Log::error('LLM returned unparseable content', [
             'content' => substr($content, 0, 500),
             'json_error' => json_last_error_msg(),
         ]);
 
-        throw new \Exception('Failed to parse JSON from DeepSeek response: '.json_last_error_msg());
+        throw new \Exception('Failed to parse JSON from LLM response: '.json_last_error_msg());
     }
 
     /**

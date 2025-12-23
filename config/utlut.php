@@ -19,7 +19,7 @@ return [
     */
     'extractor' => [
         'max_length' => env('EXTRACTOR_MAX_LENGTH', 15000),
-        'model' => env('EXTRACTOR_MODEL', 'gpt-5-mini-2025-08-07:free'),
+        'model' => env('EXTRACTOR_MODEL', 'google/gemini-2.5-flash-lite'),
         'timeout' => env('EXTRACTOR_TIMEOUT', 120),
         'temperature' => env('EXTRACTOR_TEMPERATURE', 0.1),
         'max_tokens' => env('EXTRACTOR_MAX_TOKENS', 8000),

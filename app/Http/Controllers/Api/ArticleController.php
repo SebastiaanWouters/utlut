@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SaveArticleRequest;
 use App\Http\Resources\ArticleResource;
+use App\Jobs\ExtractArticleContent;
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
 use Illuminate\Http\JsonResponse;
@@ -65,6 +66,7 @@ class ArticleController extends Controller
     public function store(SaveArticleRequest $request): JsonResponse
     {
         $deviceToken = $request->input('device_token');
+        $hasBody = ! empty($request->validated('body'));
 
         $article = Article::updateOrCreate(
             [
@@ -74,11 +76,16 @@ class ArticleController extends Controller
             [
                 'title' => $request->validated('title'),
                 'body' => $request->validated('body'),
+                'extraction_status' => $hasBody ? 'ready' : 'extracting',
             ]
         );
 
-        if ($article->body) {
+        if ($hasBody) {
+            // Body provided directly, generate audio
             GenerateArticleAudio::dispatch($article);
+        } else {
+            // No body provided, extract content from URL first
+            ExtractArticleContent::dispatch($article);
         }
 
         return response()->json([
