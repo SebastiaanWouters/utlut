@@ -6,6 +6,7 @@ use App\Models\DeviceToken;
 use App\Models\Playlist;
 use App\Models\PlaylistItem;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
 use Livewire\Attributes\Title;
@@ -134,6 +135,18 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     {
         $this->addUrl = '';
         $this->extractError = null;
+    }
+
+    public function deleteArticle(int $articleId): void
+    {
+        $deviceTokenIds = Auth::user()->deviceTokens()->pluck('id');
+        $article = Article::whereIn('device_token_id', $deviceTokenIds)->findOrFail($articleId);
+
+        if ($article->audio?->audio_path) {
+            Storage::disk('public')->delete($article->audio->audio_path);
+        }
+
+        $article->delete();
     }
 }; ?>
 
@@ -335,6 +348,15 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                         @endforeach
                                     </flux:menu.group>
                                 @endif
+                                <flux:menu.separator />
+                                <flux:menu.item
+                                    icon="trash"
+                                    wire:click="deleteArticle({{ $article->id }})"
+                                    wire:confirm="{{ __('Delete this article? This will also remove it from any playlists.') }}"
+                                    class="text-red-600 dark:text-red-400"
+                                >
+                                    {{ __('Delete') }}
+                                </flux:menu.item>
                             </flux:menu>
                         </flux:dropdown>
                     </div>
