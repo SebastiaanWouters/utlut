@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\CleanArticleContent;
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
 use App\Models\ArticleAudio;
@@ -73,7 +74,8 @@ test('POST /api/save requires bearer token and stores/dedupes article', function
         'url' => 'https://laravel.com',
     ]);
 
-    Queue::assertPushed(GenerateArticleAudio::class);
+    // CleanArticleContent is dispatched when body is provided (cleans via LLM, then generates audio)
+    Queue::assertPushed(CleanArticleContent::class);
 
     // Deduplication
     $this->withToken($token)
@@ -81,7 +83,7 @@ test('POST /api/save requires bearer token and stores/dedupes article', function
         ->assertSuccessful();
 
     expect(Article::where('device_token_id', $deviceToken->id)->count())->toBe(1);
-    Queue::assertPushed(GenerateArticleAudio::class, 2);
+    Queue::assertPushed(CleanArticleContent::class, 2);
 });
 
 test('GET /api/articles/batch returns articles by IDs', function () {
@@ -130,6 +132,7 @@ test('POST /api/save validates URL', function () {
         ->assertStatus(422)
         ->assertJsonValidationErrors(['url']);
 
+    Queue::assertNotPushed(CleanArticleContent::class);
     Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
