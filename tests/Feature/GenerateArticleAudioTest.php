@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use function Pest\Laravel\mock;
 
 it('generates and stores audio for an article', function () {
+    config(['filesystems.default' => 'public']);
     Storage::fake('public');
 
     $article = Article::factory()->create([
@@ -59,6 +60,7 @@ it('handles failure when tts service fails', function () {
 });
 
 it('is idempotent and skips if already ready, file exists, and content matches', function () {
+    config(['filesystems.default' => 'public']);
     Storage::fake('public');
     Storage::disk('public')->put('audio/1.mp3', 'existing content');
 
@@ -81,6 +83,7 @@ it('is idempotent and skips if already ready, file exists, and content matches',
 });
 
 it('re-generates if content has changed', function () {
+    config(['filesystems.default' => 'public']);
     Storage::fake('public');
     Storage::disk('public')->put('audio/1.mp3', 'old audio');
 

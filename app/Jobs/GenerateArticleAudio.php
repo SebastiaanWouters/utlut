@@ -82,7 +82,7 @@ class GenerateArticleAudio implements ShouldQueue
 
         $contentHash = hash('sha256', $this->article->body);
         $contentLength = strlen($this->article->body);
-        $disk = app()->isProduction() ? 'cloud' : 'public';
+        $disk = config('filesystems.default');
 
         /** @var ArticleAudio $audioRecord */
         $audioRecord = $this->article->audio()->firstOrCreate([], [
