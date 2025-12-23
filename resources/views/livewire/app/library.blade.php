@@ -191,6 +191,25 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                 @endphp
 
                 <div wire:key="article-{{ $article->id }}"
+                    x-data="{
+                        cached: false,
+                        caching: false,
+                        async checkCached() {
+                            if (window.AudioCache) {
+                                this.cached = await window.AudioCache.isCached({{ $article->id }}, $store.player.token);
+                            }
+                        },
+                        async download() {
+                            if (this.caching || !window.AudioCache) return;
+                            this.caching = true;
+                            try {
+                                this.cached = await window.AudioCache.prefetch({{ $article->id }}, $store.player.token);
+                            } finally {
+                                this.caching = false;
+                            }
+                        }
+                    }"
+                    x-init="checkCached()"
                     class="group flex items-center gap-4 rounded-xl border bg-white p-3 transition-colors dark:bg-zinc-800 sm:p-4"
                     :class="($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }}) ? 'border-zinc-900 dark:border-zinc-100' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'"
                 >
@@ -222,7 +241,11 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                             <h3 class="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                                 {{ $article->title ?: $article->url }}
                             </h3>
-                            @if (!$article->audio_url)
+                            @if ($article->audio_url)
+                                <span x-show="cached" x-cloak class="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+                                    {{ __('Offline') }}
+                                </span>
+                            @else
                                 <span class="shrink-0 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
                                     {{ __('Processing') }}
                                 </span>
@@ -261,6 +284,25 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                 >
                                     {{ __('Play Now') }}
                                 </flux:menu.item>
+                                @if ($article->audio_url)
+                                    <flux:menu.item
+                                        x-show="!cached"
+                                        icon="arrow-down-tray"
+                                        x-on:click="download()"
+                                        ::disabled="caching"
+                                    >
+                                        <span x-show="!caching">{{ __('Download for Offline') }}</span>
+                                        <span x-show="caching" x-cloak>{{ __('Downloading...') }}</span>
+                                    </flux:menu.item>
+                                    <flux:menu.item
+                                        x-show="cached"
+                                        icon="check-circle"
+                                        disabled
+                                        x-cloak
+                                    >
+                                        {{ __('Downloaded') }}
+                                    </flux:menu.item>
+                                @endif
                                 @if ($this->playlists->isNotEmpty())
                                     <flux:menu.separator />
                                     <flux:menu.group heading="{{ __('Add to Playlist') }}">

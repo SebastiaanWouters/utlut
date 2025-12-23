@@ -119,6 +119,71 @@
             </flux:dropdown>
         </flux:header>
 
+        {{-- PWA Install Prompt --}}
+        <div
+            x-data="{
+                deferredPrompt: null,
+                dismissed: localStorage.getItem('pwa-install-dismissed') === 'true',
+                isStandalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
+                show: false,
+                init() {
+                    if (this.dismissed || this.isStandalone) return;
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        e.preventDefault();
+                        this.deferredPrompt = e;
+                        this.show = true;
+                    });
+                },
+                async install() {
+                    if (!this.deferredPrompt) return;
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        this.show = false;
+                    }
+                    this.deferredPrompt = null;
+                },
+                dismiss() {
+                    this.show = false;
+                    this.dismissed = true;
+                    localStorage.setItem('pwa-install-dismissed', 'true');
+                }
+            }"
+            x-show="show"
+            x-cloak
+            class="fixed bottom-20 left-4 right-4 z-40 lg:bottom-4 lg:left-auto lg:right-4 lg:w-80"
+        >
+            <div class="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-700">
+                    <flux:icon.device-phone-mobile class="size-5 text-zinc-600 dark:text-zinc-300" />
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Install Utlut') }}</h3>
+                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ __('Add to home screen for offline playback and lock screen controls.') }}</p>
+                    <div class="mt-3 flex gap-2">
+                        <button
+                            @click="install()"
+                            class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                        >
+                            {{ __('Install') }}
+                        </button>
+                        <button
+                            @click="dismiss()"
+                            class="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                        >
+                            {{ __('Not now') }}
+                        </button>
+                    </div>
+                </div>
+                <button
+                    @click="dismiss()"
+                    class="-mr-1 -mt-1 rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                >
+                    <flux:icon.x-mark class="size-4" />
+                </button>
+            </div>
+        </div>
+
         {{ $slot }}
 
         {{-- Mini Player Bar --}}
