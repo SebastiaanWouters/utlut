@@ -11,5 +11,5 @@ it('can render', function () {
 
     Volt::actingAs($user)
         ->test('playlists.create')
-        ->assertSee('Create Playlist');
+        ->assertSee('New Playlist');
 });

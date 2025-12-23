@@ -135,7 +135,7 @@ test('add from url handles extraction errors gracefully', function () {
         ->test('app.library')
         ->set('addUrl', $url)
         ->call('addFromUrl')
-        ->assertSet('extractError', 'Failed to fetch URL')
+        ->assertSet('extractError', 'Failed to extract article. Please check the URL and try again.')
         ->assertSet('isExtracting', false);
 
     $this->assertDatabaseMissing('articles', ['url' => $url]);
