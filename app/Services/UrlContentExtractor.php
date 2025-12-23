@@ -4,11 +4,8 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use MoeMizrak\LaravelOpenrouter\DTO\ChatData;
-use MoeMizrak\LaravelOpenrouter\DTO\MessageData;
-use MoeMizrak\LaravelOpenrouter\DTO\ResponseFormatData;
-use MoeMizrak\LaravelOpenrouter\Facades\LaravelOpenRouter;
-use MoeMizrak\LaravelOpenrouter\Types\RoleType;
+use Prism\Prism\Enums\Provider;
+use Prism\Prism\Facades\Prism;
 
 class UrlContentExtractor
 {
@@ -268,56 +265,40 @@ class UrlContentExtractor
     }
 
     /**
-     * Single attempt at LLM extraction using OpenRouter.
+     * Single attempt at LLM extraction using OpenRouter via Prism.
      *
      * @return array{title: string, body: string}
      */
     protected function attemptLlmExtraction(string $url, string $text): array
     {
         $extractorConfig = config('utlut.extractor');
+        $timeout = $extractorConfig['timeout'] ?? 30;
 
-        $systemPrompt = 'You are a helpful assistant that extracts article content from webpages. Always respond with valid JSON only.';
+        $systemPrompt = 'You are a helpful assistant that extracts article content from webpages. Return valid JSON with "title" and "body" fields only.';
 
         $userPrompt = <<<PROMPT
-Extract the main article content from the following webpage text. Return a JSON object with exactly two fields:
-- "title": The main headline/title of the article
-- "body": The main article content (only the article body text, no navigation, ads, or footer content)
+Extract the main article content from this webpage text. Return JSON: {"title": "...", "body": "..."}
 
-If the content is not in English, keep it in the original language.
-Clean up any formatting issues and make the body readable as continuous prose.
-
-URL: {$url}
+Rules:
+- title: The main headline/title
+- body: The article content only (no navigation, ads, footer)
+- Keep original language if not English
 
 Webpage text:
 {$text}
-
-Respond ONLY with valid JSON, no markdown or other formatting.
 PROMPT;
 
-        $chatData = new ChatData(
-            messages: [
-                new MessageData(
-                    content: $systemPrompt,
-                    role: RoleType::SYSTEM,
-                ),
-                new MessageData(
-                    content: $userPrompt,
-                    role: RoleType::USER,
-                ),
-            ],
-            model: $extractorConfig['model'],
-            max_tokens: $extractorConfig['max_tokens'],
-            temperature: $extractorConfig['temperature'],
-            response_format: new ResponseFormatData(type: 'json_object'),
-        );
+        $response = Prism::text()
+            ->using(Provider::OpenRouter, $extractorConfig['model'])
+            ->withSystemPrompt($systemPrompt)
+            ->withPrompt($userPrompt)
+            ->withMaxTokens($extractorConfig['max_tokens'])
+            ->usingTemperature($extractorConfig['temperature'])
+            ->withClientOptions(['timeout' => $timeout])
+            ->withProviderOptions(['response_format' => ['type' => 'json_object']])
+            ->generate();
 
-        $response = LaravelOpenRouter::chatRequest($chatData);
-
-        if (! $response || ! isset($response->choices[0])) {
-            throw new \Exception('API returned empty or invalid response');
-        }
-
-        $content = $response->choices[0]->message->content ?? null;
+        $content = $response->text;
 
         if (empty($content) || ! is_string($content)) {
             throw new \Exception('API returned empty or invalid content');

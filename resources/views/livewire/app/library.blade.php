@@ -120,6 +120,11 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                 ]);
             }
 
+            // Check if article already exists and is extracting (to avoid duplicate jobs)
+            $existingStatus = Article::where('device_token_id', $deviceToken->id)
+                ->where('url', $this->addUrl)
+                ->value('extraction_status');
+
             $article = Article::updateOrCreate(
                 [
                     'device_token_id' => $deviceToken->id,
@@ -130,7 +135,10 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                 ]
             );
 
-            ExtractArticleContent::dispatch($article);
+            // Only dispatch if not already extracting (avoid duplicate concurrent jobs)
+            if ($existingStatus !== 'extracting') {
+                ExtractArticleContent::dispatch($article);
+            }
 
             $this->addUrl = '';
             $this->modal('add-from-url')->close();
