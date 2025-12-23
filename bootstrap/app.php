@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'device_token' => \App\Http\Middleware\AuthenticateDeviceToken::class,
+            'normalize_json' => \App\Http\Middleware\NormalizeJsonRequest::class,
         ]);
 
         // Trust proxies when behind load balancer
