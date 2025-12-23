@@ -107,10 +107,16 @@ function createPlayerStore() {
 
             audio.addEventListener('play', () => {
                 this.isPlaying = true;
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'playing';
+                }
             });
 
             audio.addEventListener('pause', () => {
                 this.isPlaying = false;
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'paused';
+                }
             });
 
             audio.addEventListener('timeupdate', () => {
