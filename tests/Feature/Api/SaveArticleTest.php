@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ExtractArticleContent;
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
 use App\Models\DeviceToken;
@@ -37,7 +38,7 @@ test('invalid token fails', function () {
     Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
-test('valid token creates article and dispatches job', function () {
+test('valid token creates article with body and dispatches audio job', function () {
     Queue::fake();
 
     $user = User::factory()->create();
@@ -55,16 +56,55 @@ test('valid token creates article and dispatches job', function () {
     ]);
 
     $response->assertStatus(200)
-        ->assertJson(['ok' => true, 'title' => 'Test Article']);
+        ->assertJson([
+            'ok' => true,
+            'title' => 'Test Article',
+            'extraction_status' => 'ready',
+        ])
+        ->assertJsonStructure(['id', 'ok', 'title', 'extraction_status']);
 
     $this->assertDatabaseHas('articles', [
         'device_token_id' => $deviceToken->id,
         'url' => 'https://example.com/article',
         'title' => 'Test Article',
         'body' => 'Article body content.',
+        'extraction_status' => 'ready',
     ]);
 
     Queue::assertPushed(GenerateArticleAudio::class);
+    Queue::assertNotPushed(ExtractArticleContent::class);
+});
+
+test('url only request triggers content extraction', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $token = 'valid-token';
+    $deviceToken = DeviceToken::factory()->create([
+        'user_id' => $user->id,
+        'token_hash' => hash('sha256', $token),
+    ]);
+
+    $response = $this->withToken($token)->postJson('/api/save', [
+        'url' => 'https://example.com/article-to-extract',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'ok' => true,
+            'title' => 'https://example.com/article-to-extract',
+            'extraction_status' => 'extracting',
+        ])
+        ->assertJsonStructure(['id', 'ok', 'title', 'extraction_status']);
+
+    $this->assertDatabaseHas('articles', [
+        'device_token_id' => $deviceToken->id,
+        'url' => 'https://example.com/article-to-extract',
+        'extraction_status' => 'extracting',
+    ]);
+
+    Queue::assertPushed(ExtractArticleContent::class);
+    Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
 test('duplicate url updates existing article', function () {
@@ -81,6 +121,7 @@ test('duplicate url updates existing article', function () {
         'url' => 'https://example.com/duplicate',
         'title' => 'Old Title',
         'body' => 'Old Body',
+        'extraction_status' => 'ready',
     ]);
 
     $response = $this->withToken($token)->postJson('/api/save', [
@@ -90,7 +131,11 @@ test('duplicate url updates existing article', function () {
     ]);
 
     $response->assertStatus(200)
-        ->assertJson(['ok' => true, 'title' => 'New Title']);
+        ->assertJson([
+            'ok' => true,
+            'title' => 'New Title',
+            'extraction_status' => 'ready',
+        ]);
 
     $this->assertDatabaseCount('articles', 1);
     $this->assertDatabaseHas('articles', [
@@ -100,6 +145,41 @@ test('duplicate url updates existing article', function () {
     ]);
 
     Queue::assertPushed(GenerateArticleAudio::class);
+});
+
+test('duplicate url while extracting does not dispatch another job', function () {
+    Queue::fake();
+    $user = User::factory()->create();
+    $token = 'valid-token';
+    $deviceToken = DeviceToken::factory()->create([
+        'user_id' => $user->id,
+        'token_hash' => hash('sha256', $token),
+    ]);
+
+    // Article already exists and is currently extracting
+    $article = Article::create([
+        'device_token_id' => $deviceToken->id,
+        'url' => 'https://example.com/extracting',
+        'extraction_status' => 'extracting',
+    ]);
+
+    // User submits the same URL again (e.g., via iOS shortcut)
+    $response = $this->withToken($token)->postJson('/api/save', [
+        'url' => 'https://example.com/extracting',
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'ok' => true,
+            'id' => $article->id,
+            'extraction_status' => 'extracting',
+        ]);
+
+    $this->assertDatabaseCount('articles', 1);
+
+    // Should NOT dispatch another extraction job since one is already running
+    Queue::assertNotPushed(ExtractArticleContent::class);
+    Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
 test('validation errors', function () {
