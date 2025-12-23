@@ -48,7 +48,7 @@ new #[Title('Setup')] class extends Component {
                     </div>
                     <flux:button
                         as="a"
-                        href="https://www.icloud.com/shortcuts/3b5591d2beb34816a48c3b2c25234335"
+                        href="https://www.icloud.com/shortcuts/1040e32c66e64c2785f58595fa5cb9e6"
                         variant="primary"
                         icon="arrow-down-tray"
                         class="w-fit"
@@ -68,7 +68,7 @@ new #[Title('Setup')] class extends Component {
                 <div class="flex flex-1 flex-col gap-3">
                     <div>
                         <h2 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Copy your token') }}</h2>
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Authenticate the shortcut on first run.') }}</p>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Paste this token when prompted during shortcut setup.') }}</p>
                     </div>
                     <flux:input
                         wire:model="token"
@@ -93,21 +93,27 @@ new #[Title('Setup')] class extends Component {
                     <div class="flex flex-col gap-2 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-700/50">
                         <div class="flex items-center gap-3">
                             <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-zinc-400 dark:bg-zinc-600 dark:text-zinc-300">
+                                <flux:icon.globe-alt class="size-3.5" />
+                            </div>
+                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Visit an article in <span class="font-medium text-zinc-900 dark:text-zinc-100">Safari</span></p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-zinc-400 dark:bg-zinc-600 dark:text-zinc-300">
                                 <flux:icon.share class="size-3.5" />
                             </div>
-                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Tap <span class="font-medium text-zinc-900 dark:text-zinc-100">Share</span> in Safari</p>
+                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Open the <span class="font-medium text-zinc-900 dark:text-zinc-100">Share</span> menu</p>
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-zinc-400 dark:bg-zinc-600 dark:text-zinc-300">
                                 <flux:icon.bolt class="size-3.5" />
                             </div>
-                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Select <span class="font-medium text-zinc-900 dark:text-zinc-100">Utlut</span> shortcut</p>
+                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Select <span class="font-medium text-zinc-900 dark:text-zinc-100">Save To Utlut</span></p>
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-zinc-400 dark:bg-zinc-600 dark:text-zinc-300">
-                                <flux:icon.clipboard class="size-3.5" />
+                                <flux:icon.check class="size-3.5" />
                             </div>
-                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Paste token when prompted</p>
+                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Wait for confirmation</p>
                         </div>
                     </div>
                 </div>
