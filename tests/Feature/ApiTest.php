@@ -77,13 +77,14 @@ test('POST /api/save requires bearer token and stores/dedupes article', function
     // CleanArticleContent is dispatched when body is provided (cleans via LLM, then generates audio)
     Queue::assertPushed(CleanArticleContent::class);
 
-    // Deduplication
+    // Deduplication - same URL submitted again while extracting doesn't dispatch another job
     $this->withToken($token)
         ->postJson('/api/save', $data)
         ->assertSuccessful();
 
     expect(Article::where('device_token_id', $deviceToken->id)->count())->toBe(1);
-    Queue::assertPushed(CleanArticleContent::class, 2);
+    // Only 1 job pushed total - second request is deduped since article is already extracting
+    Queue::assertPushed(CleanArticleContent::class, 1);
 });
 
 test('GET /api/articles/batch returns articles by IDs', function () {
