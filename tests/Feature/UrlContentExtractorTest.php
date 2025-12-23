@@ -14,6 +14,8 @@ beforeEach(function () {
         'utlut.extractor.temperature' => 0.1,
         'utlut.extractor.max_tokens' => 4096,
         'utlut.extractor.max_length' => 15000,
+        'utlut.extractor.url_timeout' => 30,
+        'utlut.extractor.max_retries' => 2,
     ]);
 });
 
@@ -56,7 +58,7 @@ test('falls back to html extraction when api returns invalid json', function () 
 
     $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
     $extractor->shouldReceive('attemptLlmExtraction')
-        ->times(3)
+        ->times(2)
         ->andThrow(new Exception('Invalid JSON'));
 
     $result = $extractor->extract('https://example.com/article');
@@ -72,7 +74,7 @@ test('falls back to og:title when available', function () {
 
     $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
     $extractor->shouldReceive('attemptLlmExtraction')
-        ->times(3)
+        ->times(2)
         ->andThrow(new Exception('Invalid response'));
 
     $result = $extractor->extract('https://example.com/my-article');
@@ -87,7 +89,7 @@ test('falls back to url-based title when no html title found', function () {
 
     $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
     $extractor->shouldReceive('attemptLlmExtraction')
-        ->times(3)
+        ->times(2)
         ->andThrow(new Exception('Empty response'));
 
     $result = $extractor->extract('https://example.com/my-awesome-article');
@@ -104,11 +106,11 @@ test('retries on api failure', function () {
 
     $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
     $extractor->shouldReceive('attemptLlmExtraction')
-        ->times(3)
+        ->times(2)
         ->andReturnUsing(function () use (&$callCount) {
             $callCount++;
-            if ($callCount < 3) {
-                throw new Exception('Rate limit exceeded');
+            if ($callCount < 2) {
+                throw new Exception('Temporary API error');
             }
 
             return ['title' => 'Success', 'body' => 'After retry.'];
@@ -117,7 +119,7 @@ test('retries on api failure', function () {
     $result = $extractor->extract('https://example.com/article');
 
     expect($result['title'])->toBe('Success');
-    expect($callCount)->toBe(3);
+    expect($callCount)->toBe(2);
 });
 
 test('uses fallback after all retries exhausted', function () {
@@ -127,12 +129,42 @@ test('uses fallback after all retries exhausted', function () {
 
     $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
     $extractor->shouldReceive('attemptLlmExtraction')
-        ->times(3)
+        ->times(2)
         ->andThrow(new Exception('API error'));
 
     $result = $extractor->extract('https://example.com/article');
 
     expect($result['title'])->toBe('Fallback After Retries');
+});
+
+test('does not retry on non-retryable errors like 401 unauthorized', function () {
+    Http::fake([
+        'example.com/*' => Http::response('<html><head><title>Auth Error Fallback</title></head><body>Content</body></html>'),
+    ]);
+
+    $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
+    $extractor->shouldReceive('attemptLlmExtraction')
+        ->once() // Should only try once, not retry
+        ->andThrow(new Exception('401 Unauthorized'));
+
+    $result = $extractor->extract('https://example.com/article');
+
+    expect($result['title'])->toBe('Auth Error Fallback');
+});
+
+test('does not retry on rate limit errors', function () {
+    Http::fake([
+        'example.com/*' => Http::response('<html><head><title>Rate Limit Fallback</title></head><body>Content</body></html>'),
+    ]);
+
+    $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
+    $extractor->shouldReceive('attemptLlmExtraction')
+        ->once() // Should only try once, not retry
+        ->andThrow(new Exception('Rate limit exceeded'));
+
+    $result = $extractor->extract('https://example.com/article');
+
+    expect($result['title'])->toBe('Rate Limit Fallback');
 });
 
 test('handles json parsing strategies', function () {

@@ -12,9 +12,23 @@ use MoeMizrak\LaravelOpenrouter\Types\RoleType;
 
 class UrlContentExtractor
 {
-    private const MAX_RETRIES = 3;
-
     private const RETRY_DELAY_MS = 500;
+
+    /**
+     * Non-retryable error patterns (auth failures, rate limits, etc.)
+     *
+     * @var array<string>
+     */
+    private const NON_RETRYABLE_PATTERNS = [
+        '401',
+        '403',
+        '429',
+        'rate limit',
+        'invalid api key',
+        'unauthorized',
+        'authentication',
+        'quota exceeded',
+    ];
 
     /**
      * Fetch URL content and extract article title and body using OpenRouter LLM.
@@ -23,11 +37,22 @@ class UrlContentExtractor
      */
     public function extract(string $url): array
     {
+        Log::info('Starting content extraction', ['url' => $url]);
+
         $htmlContent = $this->fetchUrl($url);
         $plainText = $this->htmlToPlainText($htmlContent);
 
+        Log::info('HTML converted to plain text', [
+            'url' => $url,
+            'html_length' => strlen($htmlContent),
+            'text_length' => strlen($plainText),
+        ]);
+
         try {
-            return $this->extractWithLlm($url, $plainText);
+            $result = $this->extractWithLlm($url, $plainText);
+            Log::info('LLM extraction successful', ['url' => $url]);
+
+            return $result;
         } catch (\Exception $e) {
             Log::warning('LLM extraction failed, using fallback', [
                 'url' => $url,
@@ -109,15 +134,21 @@ class UrlContentExtractor
      */
     protected function fetchUrl(string $url): string
     {
+        $timeout = config('utlut.extractor.url_timeout', 30);
+
+        Log::info('Fetching URL', ['url' => $url, 'timeout' => $timeout]);
+
         $response = Http::withHeaders([
             'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
             'Accept' => 'text/html,application/xhtml+xml',
             'Accept-Language' => 'en-US,en;q=0.9,nl;q=0.8',
-        ])->timeout(30)->get($url);
+        ])->timeout($timeout)->get($url);
 
         if ($response->failed()) {
-            throw new \Exception("Failed to fetch URL: {$url}");
+            throw new \Exception("Failed to fetch URL: {$url} (status: {$response->status()})");
         }
+
+        Log::info('URL fetched successfully', ['url' => $url, 'size' => strlen($response->body())]);
 
         return $response->body();
     }
@@ -181,26 +212,59 @@ class UrlContentExtractor
             throw new \Exception('OpenRouter API key is not configured');
         }
 
+        $maxRetries = config('utlut.extractor.max_retries', 2);
         $lastException = null;
 
-        for ($attempt = 1; $attempt <= self::MAX_RETRIES; $attempt++) {
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
             try {
+                Log::info('Attempting LLM extraction', [
+                    'url' => $url,
+                    'attempt' => $attempt,
+                    'max_retries' => $maxRetries,
+                ]);
+
                 return $this->attemptLlmExtraction($url, $text);
             } catch (\Exception $e) {
                 $lastException = $e;
                 Log::warning('LLM extraction attempt failed', [
                     'attempt' => $attempt,
-                    'max_retries' => self::MAX_RETRIES,
+                    'max_retries' => $maxRetries,
                     'error' => $e->getMessage(),
                 ]);
 
-                if ($attempt < self::MAX_RETRIES) {
+                // Don't retry non-transient errors
+                if (! $this->shouldRetry($e)) {
+                    Log::warning('Error is non-retryable, stopping retries', [
+                        'url' => $url,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    throw $e;
+                }
+
+                if ($attempt < $maxRetries) {
                     usleep(self::RETRY_DELAY_MS * 1000 * $attempt);
                 }
             }
         }
 
         throw $lastException ?? new \Exception('LLM extraction failed after retries');
+    }
+
+    /**
+     * Determine if an exception is retryable (transient error).
+     */
+    protected function shouldRetry(\Exception $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        foreach (self::NON_RETRYABLE_PATTERNS as $pattern) {
+            if (str_contains($message, strtolower($pattern))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
