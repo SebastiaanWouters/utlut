@@ -216,10 +216,19 @@
 
                     {{-- Track title and time --}}
                     <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span
-                            class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100"
-                            x-text="$store.player.currentTrack?.title || $store.player.currentTrack?.url || '{{ __('Now Playing') }}'"
-                        ></span>
+                        <div class="flex items-center gap-2">
+                            <span
+                                class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100"
+                                x-text="$store.player.currentTrack?.title || $store.player.currentTrack?.url || '{{ __('Now Playing') }}'"
+                            ></span>
+                            {{-- Speed indicator when not 1x --}}
+                            <span
+                                x-show="$store.player.playbackRate !== 1"
+                                x-text="$store.player.playbackRate + 'x'"
+                                class="shrink-0 rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300"
+                                x-cloak
+                            ></span>
+                        </div>
                         <span
                             class="truncate text-xs text-zinc-500 dark:text-zinc-400"
                             x-text="$store.player.formatTime($store.player.currentTime) + ' / ' + $store.player.formatTime($store.player.duration)"

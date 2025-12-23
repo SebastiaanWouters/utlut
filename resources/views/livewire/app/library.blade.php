@@ -346,13 +346,26 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                         <flux:dropdown position="bottom" align="end">
                             <flux:button icon="ellipsis-vertical" variant="ghost" size="sm" icon-only class="text-zinc-400" />
                             <flux:menu>
-                                <flux:menu.item
-                                    icon="play"
-                                    wire:click="play({{ $article->id }})"
-                                >
-                                    {{ __('Play Now') }}
-                                </flux:menu.item>
                                 @if ($article->audio_url)
+                                    <flux:menu.item
+                                        icon="play"
+                                        wire:click="play({{ $article->id }})"
+                                    >
+                                        {{ __('Play Now') }}
+                                    </flux:menu.item>
+                                    <flux:menu.item
+                                        icon="queue-list"
+                                        x-on:click="$dispatch('add-to-queue', { articleId: {{ $article->id }} })"
+                                    >
+                                        {{ __('Add to Queue') }}
+                                    </flux:menu.item>
+                                    <flux:menu.item
+                                        icon="arrow-right"
+                                        x-on:click="$dispatch('play-next', { articleId: {{ $article->id }} })"
+                                    >
+                                        {{ __('Play Next') }}
+                                    </flux:menu.item>
+                                    <flux:menu.separator />
                                     <flux:menu.item
                                         x-show="!cached"
                                         icon="arrow-down-tray"
@@ -369,6 +382,13 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                         x-cloak
                                     >
                                         {{ __('Downloaded') }}
+                                    </flux:menu.item>
+                                @else
+                                    <flux:menu.item
+                                        icon="clock"
+                                        disabled
+                                    >
+                                        {{ __('Processing...') }}
                                     </flux:menu.item>
                                 @endif
                                 @if ($this->playlists->isNotEmpty())

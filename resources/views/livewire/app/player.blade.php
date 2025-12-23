@@ -16,7 +16,53 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
     }
 }; ?>
 
-<div class="flex h-full flex-col" x-data>
+<div class="flex h-full flex-col" x-data="{
+    draggedIndex: null,
+    dragOverIndex: null,
+    hoverTime: null,
+    hoverPosition: 0,
+    showHoverTime: false,
+
+    handleDragStart(e, index) {
+        this.draggedIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', index);
+        e.target.classList.add('opacity-50');
+    },
+
+    handleDragEnd(e) {
+        e.target.classList.remove('opacity-50');
+        this.draggedIndex = null;
+        this.dragOverIndex = null;
+    },
+
+    handleDragOver(e, index) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.dragOverIndex = index;
+    },
+
+    handleDragLeave(e) {
+        this.dragOverIndex = null;
+    },
+
+    handleDrop(e, toIndex) {
+        e.preventDefault();
+        const fromIndex = this.draggedIndex;
+        if (fromIndex !== null && fromIndex !== toIndex) {
+            $store.player.moveInQueue(fromIndex, toIndex);
+        }
+        this.draggedIndex = null;
+        this.dragOverIndex = null;
+    },
+
+    updateHoverTime(e) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        this.hoverPosition = percent * 100;
+        this.hoverTime = $store.player.formatTime(percent * $store.player.duration);
+    }
+}">
     <!-- Offline Banner -->
     <div x-show="!$store.player.isOnline" class="border-b border-zinc-200 bg-zinc-100 py-2 text-center text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400" x-cloak>
         {{ __('Offline — Playing cached articles only') }}
@@ -25,11 +71,25 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
     <div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <!-- Main Player Area -->
         <div class="flex flex-1 flex-col items-center justify-center px-6 py-8 md:px-12 md:py-12 lg:py-16">
-            <div class="flex w-full max-w-md flex-col items-center gap-8">
+            <div class="flex w-full max-w-md flex-col items-center gap-6">
                 <!-- Album Art -->
-                <div class="relative aspect-square w-full max-w-[280px]">
+                <div class="relative aspect-square w-full max-w-[260px]">
                     <div class="absolute -inset-1 rounded-[28px] bg-gradient-to-br from-zinc-200 to-zinc-300 opacity-50 blur-xl dark:from-zinc-700 dark:to-zinc-800"></div>
                     <div class="relative flex h-full w-full items-center justify-center rounded-[24px] bg-gradient-to-br from-zinc-100 to-zinc-200 shadow-xl dark:from-zinc-700 dark:to-zinc-800">
+                        <!-- Loading overlay -->
+                        <div
+                            x-show="$store.player.isLoading"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0"
+                            x-transition:enter-end="opacity-100"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100"
+                            x-transition:leave-end="opacity-0"
+                            class="absolute inset-0 z-10 flex items-center justify-center rounded-[24px] bg-white/60 backdrop-blur-sm dark:bg-black/40"
+                            x-cloak
+                        >
+                            <div class="size-12 animate-spin rounded-full border-[3px] border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-zinc-100"></div>
+                        </div>
                         <div class="flex size-24 items-center justify-center rounded-full bg-white/60 dark:bg-black/20">
                             <flux:icon name="musical-note" class="size-12 text-zinc-400 dark:text-zinc-500" />
                         </div>
@@ -39,48 +99,184 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                 <!-- Track Info -->
                 <div class="flex w-full flex-col gap-1.5 text-center">
                     <h1 class="text-lg font-medium text-zinc-900 dark:text-zinc-100 sm:text-xl" x-text="$store.player.currentTrack ? ($store.player.currentTrack.title || $store.player.currentTrack.url) : '{{ __('Not Playing') }}'"></h1>
-                    <p class="truncate text-sm text-zinc-500 dark:text-zinc-400" x-text="$store.player.currentTrack ? $store.player.currentTrack.url : '{{ __('Select an article to play') }}'"></p>
+                    <p class="truncate text-sm text-zinc-500 dark:text-zinc-400" x-text="$store.player.currentTrack ? $store.player.getHostname($store.player.currentTrack.url) : '{{ __('Select an article to play') }}'"></p>
                 </div>
 
                 <!-- Progress -->
-                <div class="flex w-full flex-col gap-2.5">
-                    <div class="group relative h-1.5 w-full cursor-pointer rounded-full bg-zinc-200 dark:bg-zinc-700" @click="$store.player.seek($event)">
+                <div class="flex w-full flex-col gap-2">
+                    <div
+                        class="group relative h-2 w-full cursor-pointer rounded-full bg-zinc-200 dark:bg-zinc-700"
+                        @click="$store.player.seek($event)"
+                        @mouseenter="showHoverTime = true"
+                        @mouseleave="showHoverTime = false"
+                        @mousemove="updateHoverTime($event)"
+                    >
+                        <!-- Buffered -->
+                        <div class="absolute inset-y-0 left-0 rounded-full bg-zinc-300 transition-all duration-300 dark:bg-zinc-600" :style="{ width: $store.player.buffered + '%' }"></div>
+                        <!-- Progress -->
                         <div class="absolute inset-y-0 left-0 rounded-full bg-zinc-900 transition-all duration-150 ease-out dark:bg-zinc-100" :style="{ width: $store.player.progress + '%' }"></div>
-                        <div class="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-900 opacity-0 shadow-lg ring-4 ring-white transition-opacity duration-150 group-hover:opacity-100 dark:bg-zinc-100 dark:ring-zinc-800" :style="{ left: $store.player.progress + '%' }"></div>
+                        <!-- Scrubber -->
+                        <div
+                            class="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-900 opacity-0 shadow-lg ring-4 ring-white transition-all duration-150 group-hover:opacity-100 group-hover:scale-110 dark:bg-zinc-100 dark:ring-zinc-800"
+                            :style="{ left: $store.player.progress + '%' }"
+                        ></div>
+                        <!-- Hover Time Tooltip -->
+                        <div
+                            x-show="showHoverTime && $store.player.duration > 0"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="opacity-0 translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            class="pointer-events-none absolute -top-9 -translate-x-1/2 rounded-md bg-zinc-900 px-2 py-1 text-xs font-medium tabular-nums text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900"
+                            :style="{ left: hoverPosition + '%' }"
+                            x-text="hoverTime"
+                            x-cloak
+                        ></div>
                     </div>
-                    <div class="flex justify-between text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
+                    <div class="flex items-center justify-between text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
                         <span x-text="$store.player.formatTime($store.player.currentTime)">0:00</span>
+                        <!-- Speed Control -->
+                        <flux:dropdown position="top" align="center">
+                            <button class="flex items-center gap-1 rounded-md px-2 py-0.5 font-medium transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300">
+                                <span x-text="$store.player.playbackRate + 'x'">1x</span>
+                                <flux:icon name="chevron-up-down" class="size-3 opacity-50" />
+                            </button>
+                            <flux:menu class="min-w-[80px]">
+                                <flux:menu.item @click="$store.player.setPlaybackRate(0.5)" :class="$store.player.playbackRate === 0.5 && 'bg-zinc-100 dark:bg-zinc-700'">0.5x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(0.75)" :class="$store.player.playbackRate === 0.75 && 'bg-zinc-100 dark:bg-zinc-700'">0.75x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1)" :class="$store.player.playbackRate === 1 && 'bg-zinc-100 dark:bg-zinc-700'">1x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1.25)" :class="$store.player.playbackRate === 1.25 && 'bg-zinc-100 dark:bg-zinc-700'">1.25x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1.5)" :class="$store.player.playbackRate === 1.5 && 'bg-zinc-100 dark:bg-zinc-700'">1.5x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(1.75)" :class="$store.player.playbackRate === 1.75 && 'bg-zinc-100 dark:bg-zinc-700'">1.75x</flux:menu.item>
+                                <flux:menu.item @click="$store.player.setPlaybackRate(2)" :class="$store.player.playbackRate === 2 && 'bg-zinc-100 dark:bg-zinc-700'">2x</flux:menu.item>
+                            </flux:menu>
+                        </flux:dropdown>
                         <span x-text="$store.player.formatTime($store.player.duration)">0:00</span>
                     </div>
                 </div>
 
-                <!-- Controls -->
-                <div class="flex items-center justify-center gap-6">
+                <!-- Main Controls -->
+                <div class="flex items-center justify-center gap-3">
+                    <!-- Previous Track -->
                     <button
-                        class="flex size-12 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        class="flex size-11 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
                         @click="$store.player.prev()"
-                        x-bind:disabled="$store.player.currentIndex <= 0"
+                        x-bind:disabled="$store.player.currentIndex <= 0 && !$store.player.shuffleEnabled"
+                        title="{{ __('Previous') }}"
                     >
-                        <flux:icon name="backward" class="size-6" />
+                        <flux:icon name="backward" class="size-5" />
                     </button>
+
+                    <!-- Skip Back 15s -->
                     <button
-                        class="flex size-16 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg transition-all hover:scale-[1.04] hover:shadow-xl active:scale-[0.98] disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
+                        class="flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        @click="$store.player.skipBackward(15)"
+                        x-bind:disabled="!$store.player.currentTrack"
+                        title="{{ __('Back 15 seconds') }}"
+                    >
+                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 17a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1z"/>
+                            <path d="M21 17a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1z"/>
+                            <path d="M3 5v6h6"/>
+                            <path d="M3 11a9 9 0 0 1 15-6.7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Play/Pause -->
+                    <button
+                        class="relative flex size-16 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg transition-all duration-200 hover:scale-[1.04] hover:shadow-xl active:scale-[0.98] disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900"
                         @click="$store.player.togglePlay()"
                         x-bind:disabled="!$store.player.currentTrack"
                     >
-                        <span x-show="$store.player.isPlaying" x-cloak>
+                        <!-- Loading Spinner -->
+                        <span x-show="$store.player.isLoading" class="absolute inset-0 flex items-center justify-center" x-cloak>
+                            <div class="size-6 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-900/30 dark:border-t-zinc-900"></div>
+                        </span>
+                        <!-- Pause Icon -->
+                        <span x-show="$store.player.isPlaying && !$store.player.isLoading" x-cloak>
                             <flux:icon name="pause" class="size-7" />
                         </span>
-                        <span x-show="!$store.player.isPlaying">
+                        <!-- Play Icon -->
+                        <span x-show="!$store.player.isPlaying && !$store.player.isLoading">
                             <flux:icon name="play" class="ml-1 size-7" />
                         </span>
                     </button>
+
+                    <!-- Skip Forward 15s -->
                     <button
-                        class="flex size-12 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
-                        @click="$store.player.next()"
-                        x-bind:disabled="$store.player.currentIndex >= $store.player.queue.length - 1"
+                        class="flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        @click="$store.player.skipForward(15)"
+                        x-bind:disabled="!$store.player.currentTrack"
+                        title="{{ __('Forward 15 seconds') }}"
                     >
-                        <flux:icon name="forward" class="size-6" />
+                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 17a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/>
+                            <path d="M13 17a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1z"/>
+                            <path d="M21 5v6h-6"/>
+                            <path d="M21 11a9 9 0 0 0-15-6.7"/>
+                        </svg>
+                    </button>
+
+                    <!-- Next Track -->
+                    <button
+                        class="flex size-11 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        @click="$store.player.next()"
+                        x-bind:disabled="$store.player.currentIndex >= $store.player.queue.length - 1 && $store.player.repeatMode === 'off' && !$store.player.shuffleEnabled"
+                        title="{{ __('Next') }}"
+                    >
+                        <flux:icon name="forward" class="size-5" />
+                    </button>
+                </div>
+
+                <!-- Secondary Controls: Shuffle & Repeat -->
+                <div class="flex items-center justify-center gap-4">
+                    <!-- Shuffle -->
+                    <button
+                        class="flex size-10 items-center justify-center rounded-full transition-all duration-200"
+                        :class="$store.player.shuffleEnabled
+                            ? 'bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900'
+                            : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'"
+                        @click="$store.player.toggleShuffle()"
+                        title="{{ __('Shuffle') }}"
+                    >
+                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 3h5v5"/>
+                            <path d="M4 20L21 3"/>
+                            <path d="M21 16v5h-5"/>
+                            <path d="M15 15l6 6"/>
+                            <path d="M4 4l5 5"/>
+                        </svg>
+                    </button>
+
+                    <!-- Repeat -->
+                    <button
+                        class="relative flex size-10 items-center justify-center rounded-full transition-all duration-200"
+                        :class="$store.player.repeatMode !== 'off'
+                            ? 'bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900'
+                            : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'"
+                        @click="$store.player.cycleRepeatMode()"
+                        :title="$store.player.repeatMode === 'off' ? '{{ __('Repeat off') }}' : ($store.player.repeatMode === 'all' ? '{{ __('Repeat all') }}' : '{{ __('Repeat one') }}')"
+                    >
+                        <!-- Repeat All / Off Icon -->
+                        <svg x-show="$store.player.repeatMode !== 'one'" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m17 2 4 4-4 4"/>
+                            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
+                            <path d="m7 22-4-4 4-4"/>
+                            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+                        </svg>
+                        <!-- Repeat One Icon -->
+                        <svg x-show="$store.player.repeatMode === 'one'" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x-cloak>
+                            <path d="m17 2 4 4-4 4"/>
+                            <path d="M3 11v-1a4 4 0 0 1 4-4h14"/>
+                            <path d="m7 22-4-4 4-4"/>
+                            <path d="M21 13v1a4 4 0 0 1-4 4H3"/>
+                            <path d="M11 10h1v4"/>
+                        </svg>
+                        <!-- "1" badge for repeat one -->
+                        <span
+                            x-show="$store.player.repeatMode === 'one'"
+                            class="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-900 ring-2 ring-white dark:bg-zinc-900 dark:text-zinc-100 dark:ring-zinc-800"
+                            x-cloak
+                        >1</span>
                     </button>
                 </div>
             </div>
@@ -121,44 +317,87 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                 <div class="space-y-1">
                     <template x-for="(track, index) in $store.player.queue" :key="track.id">
                         <div
-                            class="queue-item group relative flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 sm:gap-3.5 sm:px-3.5 sm:py-3"
-                            :class="($store.player.currentIndex === index)
-                                ? 'queue-item-active bg-white shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-800 dark:ring-zinc-100/5'
-                                : 'hover:bg-white/70 active:bg-white active:scale-[0.99] dark:hover:bg-zinc-800/50 dark:active:bg-zinc-800/70'"
-                            @click="$store.player.playTrack(index)"
+                            class="queue-item group relative flex items-center gap-2 rounded-xl px-2 py-2.5 transition-all duration-200 sm:gap-3 sm:px-3 sm:py-3"
+                            :class="[
+                                !$store.player.isArticleReady(track) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+                                ($store.player.currentIndex === index)
+                                    ? 'queue-item-active bg-white shadow-sm ring-1 ring-zinc-900/5 dark:bg-zinc-800 dark:ring-zinc-100/5'
+                                    : ($store.player.isArticleReady(track) ? 'hover:bg-white/70 active:bg-white dark:hover:bg-zinc-800/50 dark:active:bg-zinc-800/70' : ''),
+                                dragOverIndex === index && draggedIndex !== index ? 'ring-2 ring-zinc-400 dark:ring-zinc-500' : ''
+                            ]"
+                            @click="$store.player.isArticleReady(track) && $store.player.playTrack(index)"
+                            draggable="true"
+                            @dragstart="handleDragStart($event, index)"
+                            @dragend="handleDragEnd($event)"
+                            @dragover="handleDragOver($event, index)"
+                            @dragleave="handleDragLeave($event)"
+                            @drop="handleDrop($event, index)"
                         >
+                            <!-- Drag Handle -->
+                            <div
+                                class="flex size-6 shrink-0 cursor-grab items-center justify-center rounded text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing dark:text-zinc-600 sm:size-7"
+                                @click.stop
+                            >
+                                <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="9" cy="6" r="1.5"/>
+                                    <circle cx="15" cy="6" r="1.5"/>
+                                    <circle cx="9" cy="12" r="1.5"/>
+                                    <circle cx="15" cy="12" r="1.5"/>
+                                    <circle cx="9" cy="18" r="1.5"/>
+                                    <circle cx="15" cy="18" r="1.5"/>
+                                </svg>
+                            </div>
+
                             <!-- Track Number / Playing Indicator -->
                             <div
-                                class="relative flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold transition-all duration-200 sm:size-10"
-                                :class="($store.player.currentIndex === index)
-                                    ? 'bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900'
-                                    : 'bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200/80 dark:bg-zinc-700/60 dark:text-zinc-400 dark:group-hover:bg-zinc-700'"
+                                class="relative flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold transition-all duration-200 sm:size-9"
+                                :class="!$store.player.isArticleReady(track)
+                                    ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                                    : ($store.player.currentIndex === index)
+                                        ? 'bg-zinc-900 text-white shadow-md dark:bg-zinc-100 dark:text-zinc-900'
+                                        : 'bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200/80 dark:bg-zinc-700/60 dark:text-zinc-400 dark:group-hover:bg-zinc-700'"
                             >
+                                <!-- Processing Spinner for non-ready tracks -->
+                                <template x-if="!$store.player.isArticleReady(track)">
+                                    <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                </template>
                                 <!-- Playing Animation -->
-                                <template x-if="$store.player.currentIndex === index && $store.player.isPlaying">
+                                <template x-if="$store.player.isArticleReady(track) && $store.player.currentIndex === index && $store.player.isPlaying">
                                     <div class="flex items-end gap-[3px]">
-                                        <span class="eq-bar h-2.5 w-[3px] origin-bottom rounded-full bg-current"></span>
-                                        <span class="eq-bar animation-delay-100 h-4 w-[3px] origin-bottom rounded-full bg-current"></span>
-                                        <span class="eq-bar animation-delay-200 h-3 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                        <span class="eq-bar h-2 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                        <span class="eq-bar animation-delay-100 h-3 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                        <span class="eq-bar animation-delay-200 h-2.5 w-[3px] origin-bottom rounded-full bg-current"></span>
                                     </div>
                                 </template>
                                 <!-- Paused Icon for Current Track -->
-                                <template x-if="$store.player.currentIndex === index && !$store.player.isPlaying">
-                                    <flux:icon name="pause" class="size-4" />
+                                <template x-if="$store.player.isArticleReady(track) && $store.player.currentIndex === index && !$store.player.isPlaying">
+                                    <flux:icon name="pause" class="size-3.5" />
                                 </template>
                                 <!-- Track Number -->
-                                <template x-if="$store.player.currentIndex !== index">
+                                <template x-if="$store.player.isArticleReady(track) && $store.player.currentIndex !== index">
                                     <span x-text="index + 1" class="tabular-nums"></span>
                                 </template>
                             </div>
 
                             <!-- Track Info -->
                             <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                                <span
-                                    class="line-clamp-1 text-[13px] font-medium leading-tight text-zinc-900 transition-colors sm:text-sm dark:text-zinc-100"
-                                    :class="$store.player.currentIndex === index ? 'text-zinc-900 dark:text-zinc-100' : 'group-hover:text-zinc-900 dark:group-hover:text-zinc-100'"
-                                    x-text="track.title || track.url"
-                                ></span>
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="line-clamp-1 text-[13px] font-medium leading-tight transition-colors sm:text-sm"
+                                        :class="!$store.player.isArticleReady(track)
+                                            ? 'text-zinc-400 dark:text-zinc-500'
+                                            : ($store.player.currentIndex === index ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-900 group-hover:text-zinc-900 dark:text-zinc-100 dark:group-hover:text-zinc-100')"
+                                        x-text="track.title || track.url"
+                                    ></span>
+                                    <span
+                                        x-show="!$store.player.isArticleReady(track)"
+                                        class="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+                                        x-cloak
+                                    >{{ __('Processing') }}</span>
+                                </div>
                                 <span
                                     class="line-clamp-1 text-[11px] text-zinc-400 transition-colors sm:text-xs dark:text-zinc-500"
                                     x-text="$store.player.getHostname(track.url)"
@@ -167,7 +406,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
                             <!-- Remove Button -->
                             <button
-                                class="flex size-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all duration-200 hover:bg-zinc-100 hover:text-red-500 group-hover:opacity-100 focus:opacity-100 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-red-400 sm:size-9"
+                                class="flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 opacity-0 transition-all duration-200 hover:bg-zinc-100 hover:text-red-500 group-hover:opacity-100 focus:opacity-100 active:scale-95 dark:hover:bg-zinc-700 dark:hover:text-red-400 sm:size-8"
                                 :class="$store.player.currentIndex === index ? 'opacity-70' : ''"
                                 @click.stop="$store.player.removeFromQueue(index)"
                                 title="{{ __('Remove from queue') }}"
@@ -305,6 +544,14 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                 max-height: 40vh;
             }
         }
+
+        /* Drag and drop styling */
+        .queue-item[draggable="true"] {
+            touch-action: none;
+        }
+
+        .queue-item.dragging {
+            opacity: 0.5;
+        }
     </style>
 </div>
-
