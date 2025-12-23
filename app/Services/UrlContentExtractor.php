@@ -61,6 +61,147 @@ class UrlContentExtractor
     }
 
     /**
+     * Clean and structure client-provided content using OpenRouter LLM.
+     * Used when content is provided directly (e.g., from iOS shortcut behind paywall).
+     *
+     * @return array{title: string, body: string}
+     */
+    public function clean(string $rawContent, ?string $providedTitle = null, ?string $url = null): array
+    {
+        Log::info('Starting content cleanup', [
+            'url' => $url,
+            'content_length' => strlen($rawContent),
+            'has_title' => ! empty($providedTitle),
+        ]);
+
+        // Convert HTML to plain text if it looks like HTML
+        $plainText = $this->looksLikeHtml($rawContent)
+            ? $this->htmlToPlainText($rawContent)
+            : $rawContent;
+
+        try {
+            $result = $this->cleanWithLlm($plainText, $providedTitle);
+            Log::info('LLM cleanup successful', ['url' => $url]);
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::warning('LLM cleanup failed, using fallback', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Fallback: use provided title or extract from URL, clean body text
+            return [
+                'title' => $providedTitle ?: ($url ? $this->extractTitleFromUrl($url) : 'Article'),
+                'body' => $this->cleanBodyText($plainText),
+            ];
+        }
+    }
+
+    /**
+     * Check if content looks like HTML.
+     */
+    protected function looksLikeHtml(string $content): bool
+    {
+        return preg_match('/<[a-z][\s\S]*>/i', $content) === 1;
+    }
+
+    /**
+     * Use OpenRouter LLM to clean and structure provided content.
+     *
+     * @return array{title: string, body: string}
+     */
+    protected function cleanWithLlm(string $text, ?string $providedTitle = null): array
+    {
+        $apiKey = config('laravel-openrouter.api_key');
+
+        if (! $apiKey) {
+            throw new \Exception('OpenRouter API key is not configured');
+        }
+
+        $maxRetries = config('utlut.extractor.max_retries', 2);
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                Log::info('Attempting LLM cleanup', [
+                    'attempt' => $attempt,
+                    'max_retries' => $maxRetries,
+                ]);
+
+                return $this->attemptLlmCleanup($text, $providedTitle);
+            } catch (\Exception $e) {
+                $lastException = $e;
+                Log::warning('LLM cleanup attempt failed', [
+                    'attempt' => $attempt,
+                    'max_retries' => $maxRetries,
+                    'error' => $e->getMessage(),
+                ]);
+
+                if (! $this->shouldRetry($e)) {
+                    throw $e;
+                }
+
+                if ($attempt < $maxRetries) {
+                    usleep(self::RETRY_DELAY_MS * 1000 * $attempt);
+                }
+            }
+        }
+
+        throw $lastException ?? new \Exception('LLM cleanup failed after retries');
+    }
+
+    /**
+     * Single attempt at LLM cleanup.
+     *
+     * @return array{title: string, body: string}
+     */
+    protected function attemptLlmCleanup(string $text, ?string $providedTitle = null): array
+    {
+        $extractorConfig = config('utlut.extractor');
+        $timeout = $extractorConfig['timeout'] ?? 30;
+
+        $systemPrompt = 'You are a helpful assistant that cleans and structures article content for text-to-speech. Return valid JSON with "title" and "body" fields only.';
+
+        $titleInstruction = $providedTitle
+            ? "Provided title (verify/improve if needed): \"{$providedTitle}\""
+            : 'Extract the main headline/title from the content';
+
+        $userPrompt = <<<PROMPT
+Clean and structure this article content for text-to-speech conversion. Return JSON: {"title": "...", "body": "..."}
+
+Rules:
+- title: {$titleInstruction}
+- body: The main article content only, cleaned up for audio narration
+- Remove navigation, ads, footers, sidebars, cookie notices, subscription prompts
+- Remove URLs, image captions, "Read more" links, social share buttons
+- Keep paragraphs readable and flowing naturally
+- Keep original language if not English
+
+Content to clean:
+{$text}
+PROMPT;
+
+        $response = Prism::text()
+            ->using(Provider::OpenRouter, $extractorConfig['model'])
+            ->withSystemPrompt($systemPrompt)
+            ->withPrompt($userPrompt)
+            ->withMaxTokens($extractorConfig['max_tokens'])
+            ->usingTemperature($extractorConfig['temperature'])
+            ->withClientOptions(['timeout' => $timeout])
+            ->withProviderOptions(['response_format' => ['type' => 'json_object']])
+            ->generate();
+
+        $content = $response->text;
+
+        if (empty($content) || ! is_string($content)) {
+            throw new \Exception('API returned empty or invalid content');
+        }
+
+        return $this->parseJsonResponse($content);
+    }
+
+    /**
      * Fallback extraction using basic HTML parsing when LLM fails.
      *
      * @return array{title: string, body: string}
