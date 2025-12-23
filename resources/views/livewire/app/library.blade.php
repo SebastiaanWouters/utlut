@@ -5,6 +5,7 @@ use App\Models\Article;
 use App\Models\DeviceToken;
 use App\Models\Playlist;
 use App\Models\PlaylistItem;
+use App\Services\AudioProgressEstimator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -61,6 +62,49 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                     });
             })
             ->exists();
+    }
+
+    #[Computed]
+    public function optimalPollingInterval(): int
+    {
+        $deviceTokenIds = Auth::user()->deviceTokens()->pluck('id');
+        $estimator = app(AudioProgressEstimator::class);
+
+        $processingArticles = Article::with('audio')
+            ->whereIn('device_token_id', $deviceTokenIds)
+            ->where(function ($q) {
+                $q->where('extraction_status', 'extracting')
+                    ->orWhere(function ($q2) {
+                        $q2->where('extraction_status', 'ready')
+                            ->whereNull('audio_url')
+                            ->whereDoesntHave('audio', fn ($q3) => $q3->where('status', 'failed'));
+                    });
+            })
+            ->get();
+
+        if ($processingArticles->isEmpty()) {
+            return 5000;
+        }
+
+        $minInterval = 5000;
+        foreach ($processingArticles as $article) {
+            if ($article->audio) {
+                $interval = $estimator->getOptimalPollingInterval($article->audio);
+                $minInterval = min($minInterval, $interval);
+            }
+        }
+
+        return $minInterval;
+    }
+
+    public function calculateEta(Article $article): ?int
+    {
+        if (! $article->audio?->processing_started_at || ! $article->audio?->estimated_duration_ms) {
+            return null;
+        }
+
+        $elapsedMs = now()->diffInMilliseconds($article->audio->processing_started_at);
+        return max(0, (int) (($article->audio->estimated_duration_ms - $elapsedMs) / 1000));
     }
 
     public function updatedSearch(): void
@@ -168,7 +212,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
 }; ?>
 
 <div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8"
-    @if($this->hasProcessingArticles) wire:poll.3s @endif>
+    @if($this->hasProcessingArticles) wire:poll.{{ $this->optimalPollingInterval }}ms @endif>
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -288,17 +332,17 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                     {{ __('Offline') }}
                                 </span>
                             @elseif ($article->audio?->status === 'failed')
-                                <span class="shrink-0 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-950/50 dark:text-red-400">
-                                    {{ __('Audio failed') }}
-                                </span>
+                                <x-audio-error-badge
+                                    :errorCode="$article->audio->error_code"
+                                    :message="$article->audio->error_message"
+                                    :nextRetryAt="$article->audio->next_retry_at"
+                                    :retryCount="$article->audio->retry_count ?? 0"
+                                />
                             @elseif ($article->extraction_status === 'ready')
-                                <span class="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
-                                    <svg class="size-2.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                    </svg>
-                                    {{ __('Generating audio') }}
-                                </span>
+                                <x-audio-progress-badge
+                                    :progress="$article->audio?->progress_percent ?? 0"
+                                    :etaSeconds="$this->calculateEta($article)"
+                                />
                             @endif
                         </div>
                         <p class="truncate text-xs text-zinc-400 dark:text-zinc-500">{{ $host }}</p>
@@ -335,11 +379,14 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                             <flux:button size="sm" variant="ghost" wire:click="generateAudio({{ $article->id }})">{{ __('Retry') }}</flux:button>
                         @elseif ($article->extraction_status === 'ready')
                             <span class="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500">
-                                <svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                <svg class="size-3" viewBox="0 0 16 16">
+                                    <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" class="opacity-25" />
+                                    <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-dasharray="{{ 2 * 3.14159 * 6 }}"
+                                        stroke-dashoffset="{{ 2 * 3.14159 * 6 * (1 - ($article->audio?->progress_percent ?? 0) / 100) }}"
+                                        transform="rotate(-90 8 8)" class="transition-all duration-300" />
                                 </svg>
-                                {{ __('Generating...') }}
+                                {{ $article->audio?->progress_percent ?? 0 }}%
                             </span>
                         @endif
 

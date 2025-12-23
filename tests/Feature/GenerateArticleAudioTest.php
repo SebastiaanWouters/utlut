@@ -2,6 +2,8 @@
 
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
+use App\Services\AudioChunker;
+use App\Services\AudioProgressEstimator;
 use App\Services\NagaTts;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,7 +23,7 @@ it('generates and stores audio for an article', function () {
         ->andReturn('fake audio content');
 
     $job = new GenerateArticleAudio($article);
-    $job->handle($mockTts);
+    $job->handle($mockTts, new AudioChunker, new AudioProgressEstimator);
 
     $article->refresh();
     $audioRecord = $article->audio;
@@ -46,7 +48,7 @@ it('handles failure when tts service fails', function () {
     $job = new GenerateArticleAudio($article);
 
     try {
-        $job->handle($mockTts);
+        $job->handle($mockTts, new AudioChunker, new AudioProgressEstimator);
     } catch (Exception $e) {
         // Expected
     }

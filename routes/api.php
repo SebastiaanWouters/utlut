@@ -15,6 +15,7 @@ Route::middleware(['device_token', 'throttle:60,1'])->group(function () {
     Route::post('/articles/{article}/tts', [ArticleController::class, 'dispatchTts'])
         ->middleware('throttle:5,1');
     Route::get('/articles/{article}/audio', [ArticleController::class, 'getAudio']);
+    Route::get('/articles/{article}/progress', [ArticleController::class, 'getProgressStatus']);
 
     // Playlists
     Route::post('/playlists', [PlaylistController::class, 'store']);

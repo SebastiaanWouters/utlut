@@ -46,6 +46,20 @@ class ExtractArticleContent implements ShouldQueue
     }
 
     /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('ExtractArticleContent job failed', [
+            'article_id' => $this->article->id,
+            'url' => $this->article->url,
+            'error' => $exception->getMessage(),
+        ]);
+
+        $this->article->update(['extraction_status' => 'failed']);
+    }
+
+    /**
      * Execute the job.
      */
     public function handle(UrlContentExtractor $extractor): void

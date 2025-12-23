@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\AudioErrorCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SaveArticleRequest;
 use App\Http\Resources\ArticleResource;
 use App\Jobs\ExtractArticleContent;
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
+use App\Services\AudioProgressEstimator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -169,5 +171,51 @@ class ArticleController extends Controller
         }
 
         return Storage::disk('public')->response($audio->audio_path);
+    }
+
+    /**
+     * Get detailed progress status for audio generation.
+     */
+    public function getProgressStatus(Request $request, Article $article): JsonResponse
+    {
+        $audio = $article->audio()->first();
+        $estimator = app(AudioProgressEstimator::class);
+
+        if (! $audio) {
+            return response()->json([
+                'status' => 'not_started',
+                'progress_percent' => 0,
+                'polling_interval' => 3000,
+            ]);
+        }
+
+        $etaSeconds = $estimator->calculateEtaSeconds($audio);
+        $pollingInterval = $estimator->getOptimalPollingInterval($audio);
+
+        $response = [
+            'status' => $audio->status,
+            'progress_percent' => $audio->progress_percent ?? 0,
+            'completed_chunks' => $audio->completed_chunks ?? 0,
+            'total_chunks' => $audio->total_chunks ?? 1,
+            'eta_seconds' => $etaSeconds,
+            'polling_interval' => $pollingInterval,
+            'retry_count' => $audio->retry_count ?? 0,
+        ];
+
+        // Include error info if failed
+        if ($audio->status === 'failed' && $audio->error_code) {
+            $errorCode = AudioErrorCode::tryFrom($audio->error_code);
+            $response['error_code'] = $audio->error_code;
+            $response['error_message'] = $errorCode?->userMessage() ?? 'An error occurred';
+            $response['can_retry'] = $errorCode?->isRetryable() ?? true;
+        }
+
+        // Include next retry info if scheduled
+        if ($audio->next_retry_at) {
+            $response['next_retry_at'] = $audio->next_retry_at->toIso8601String();
+            $response['retry_countdown_seconds'] = max(0, now()->diffInSeconds($audio->next_retry_at, false));
+        }
+
+        return response()->json($response);
     }
 }

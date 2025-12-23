@@ -24,6 +24,10 @@ class ArticleAudioFactory extends Factory
             'article_id' => Article::factory(),
             'status' => 'ready',
             'audio_path' => 'https://example.com/audio/'.fake()->uuid().'.mp3',
+            'progress_percent' => 100,
+            'total_chunks' => 1,
+            'completed_chunks' => 1,
+            'retry_count' => 0,
         ];
     }
 }
