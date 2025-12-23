@@ -27,7 +27,7 @@
 
     @if($etaSeconds !== null && $etaSeconds > 0)
         <span class="text-zinc-400 dark:text-zinc-500">
-            (~{{ $etaSeconds < 60 ? $etaSeconds . 's' : (int) ceil($etaSeconds / 60) . 'm' }})
+            (~{{ $etaSeconds < 60 ? (int) $etaSeconds . 's' : (int) ceil($etaSeconds / 60) . 'm' }})
         </span>
     @endif
 </span>

@@ -350,15 +350,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
 
                     <!-- Actions -->
                     <div class="flex items-center gap-1">
-                        @if ($article->extraction_status === 'extracting')
-                            <span class="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500">
-                                <svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                                {{ __('Extracting...') }}
-                            </span>
-                        @elseif ($article->extraction_status === 'failed')
+                        @if ($article->extraction_status === 'failed')
                             <flux:button size="sm" variant="ghost" wire:click="retryExtraction({{ $article->id }})">{{ __('Retry') }}</flux:button>
                         @elseif ($article->audio_url)
                             <button
@@ -377,17 +369,6 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                             </button>
                         @elseif ($article->audio?->status === 'failed')
                             <flux:button size="sm" variant="ghost" wire:click="generateAudio({{ $article->id }})">{{ __('Retry') }}</flux:button>
-                        @elseif ($article->extraction_status === 'ready')
-                            <span class="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500">
-                                <svg class="size-3" viewBox="0 0 16 16">
-                                    <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" class="opacity-25" />
-                                    <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-dasharray="{{ 2 * 3.14159 * 6 }}"
-                                        stroke-dashoffset="{{ 2 * 3.14159 * 6 * (1 - ($article->audio?->progress_percent ?? 0) / 100) }}"
-                                        transform="rotate(-90 8 8)" class="transition-all duration-300" />
-                                </svg>
-                                {{ $article->audio?->progress_percent ?? 0 }}%
-                            </span>
                         @endif
 
                         <flux:dropdown position="bottom" align="end">
