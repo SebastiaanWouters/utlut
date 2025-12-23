@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Log;
 
 class UrlContentExtractor
 {
+    private const MAX_RETRIES = 3;
+
+    private const RETRY_DELAY_MS = 500;
+
     /**
      * Fetch URL content and extract article title and body using DeepSeek.
      *
@@ -17,7 +21,82 @@ class UrlContentExtractor
         $htmlContent = $this->fetchUrl($url);
         $plainText = $this->htmlToPlainText($htmlContent);
 
-        return $this->extractWithDeepSeek($url, $plainText);
+        try {
+            return $this->extractWithDeepSeek($url, $plainText);
+        } catch (\Exception $e) {
+            Log::warning('DeepSeek extraction failed, using fallback', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->fallbackExtract($url, $htmlContent, $plainText);
+        }
+    }
+
+    /**
+     * Fallback extraction using basic HTML parsing when LLM fails.
+     *
+     * @return array{title: string, body: string}
+     */
+    protected function fallbackExtract(string $url, string $html, string $plainText): array
+    {
+        $title = $this->extractTitleFromHtml($html) ?: $this->extractTitleFromUrl($url);
+        $body = $this->cleanBodyText($plainText);
+
+        return [
+            'title' => $title,
+            'body' => $body,
+        ];
+    }
+
+    /**
+     * Extract title from HTML using common patterns.
+     */
+    protected function extractTitleFromHtml(string $html): ?string
+    {
+        // Try og:title first
+        if (preg_match('/<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']/', $html, $matches)) {
+            return html_entity_decode(trim($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        // Try <title> tag
+        if (preg_match('/<title[^>]*>([^<]+)<\/title>/i', $html, $matches)) {
+            return html_entity_decode(trim($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        // Try h1 tag
+        if (preg_match('/<h1[^>]*>([^<]+)<\/h1>/i', $html, $matches)) {
+            return html_entity_decode(trim($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract a title from URL as last resort.
+     */
+    protected function extractTitleFromUrl(string $url): string
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?: '';
+        $segments = array_filter(explode('/', $path));
+        $lastSegment = end($segments) ?: parse_url($url, PHP_URL_HOST) ?: 'Article';
+
+        // Clean up slug-style URLs
+        $title = str_replace(['-', '_'], ' ', $lastSegment);
+        $title = preg_replace('/\.[a-z]+$/i', '', $title);
+
+        return ucwords($title);
+    }
+
+    /**
+     * Clean body text for fallback.
+     */
+    protected function cleanBodyText(string $text): string
+    {
+        // Take the first substantial portion
+        $maxLength = min(strlen($text), 5000);
+
+        return substr($text, 0, $maxLength);
     }
 
     /**
@@ -63,7 +142,7 @@ class UrlContentExtractor
     }
 
     /**
-     * Use DeepSeek to extract article title and body from text.
+     * Use DeepSeek to extract article title and body from text with retry logic.
      *
      * @return array{title: string, body: string}
      */
@@ -76,6 +155,37 @@ class UrlContentExtractor
             throw new \Exception('Naga API key is not configured');
         }
 
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= self::MAX_RETRIES; $attempt++) {
+            try {
+                return $this->attemptDeepSeekExtraction($url, $text, $nagaConfig, $extractorConfig);
+            } catch (\Exception $e) {
+                $lastException = $e;
+                Log::warning('DeepSeek extraction attempt failed', [
+                    'attempt' => $attempt,
+                    'max_retries' => self::MAX_RETRIES,
+                    'error' => $e->getMessage(),
+                ]);
+
+                if ($attempt < self::MAX_RETRIES) {
+                    usleep(self::RETRY_DELAY_MS * 1000 * $attempt);
+                }
+            }
+        }
+
+        throw $lastException ?? new \Exception('DeepSeek extraction failed after retries');
+    }
+
+    /**
+     * Single attempt at DeepSeek extraction.
+     *
+     * @param  array{key: string, url: string}  $nagaConfig
+     * @param  array{timeout: int, model: string, temperature: float, max_tokens: int}  $extractorConfig
+     * @return array{title: string, body: string}
+     */
+    protected function attemptDeepSeekExtraction(string $url, string $text, array $nagaConfig, array $extractorConfig): array
+    {
         $prompt = <<<PROMPT
 Extract the main article content from the following webpage text. Return a JSON object with exactly two fields:
 - "title": The main headline/title of the article
@@ -112,30 +222,110 @@ PROMPT;
         ]);
 
         if ($response->failed()) {
-            Log::error('DeepSeek extraction failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            throw new \Exception('Failed to extract content with DeepSeek: '.$response->body());
+            throw new \Exception('API request failed: '.$response->status().' - '.$response->body());
         }
 
         $result = $response->json();
-        $content = $result['choices'][0]['message']['content'] ?? '';
 
-        $content = preg_replace('/^```json\s*/i', '', $content);
-        $content = preg_replace('/\s*```$/i', '', $content);
-        $content = trim($content);
-
-        $parsed = json_decode($content, true);
-
-        if (! is_array($parsed) || ! isset($parsed['title']) || ! isset($parsed['body'])) {
-            Log::error('DeepSeek returned invalid JSON', ['content' => $content]);
-            throw new \Exception('Failed to parse article content from DeepSeek response');
+        if (! is_array($result)) {
+            throw new \Exception('API returned non-array response');
         }
 
+        $content = $result['choices'][0]['message']['content'] ?? null;
+
+        if (empty($content) || ! is_string($content)) {
+            throw new \Exception('API returned empty or invalid content');
+        }
+
+        return $this->parseJsonResponse($content);
+    }
+
+    /**
+     * Parse JSON from LLM response with multiple fallback strategies.
+     *
+     * @return array{title: string, body: string}
+     */
+    protected function parseJsonResponse(string $content): array
+    {
+        // Strategy 1: Direct parse (ideal case)
+        $parsed = json_decode($content, true);
+        if ($this->isValidExtraction($parsed)) {
+            return $this->normalizeExtraction($parsed);
+        }
+
+        // Strategy 2: Strip markdown code blocks (various formats)
+        $cleaned = $this->stripMarkdownCodeBlocks($content);
+        $parsed = json_decode($cleaned, true);
+        if ($this->isValidExtraction($parsed)) {
+            return $this->normalizeExtraction($parsed);
+        }
+
+        // Strategy 3: Find JSON object in content using regex
+        if (preg_match('/\{[^{}]*"title"[^{}]*"body"[^{}]*\}/s', $content, $matches)) {
+            $parsed = json_decode($matches[0], true);
+            if ($this->isValidExtraction($parsed)) {
+                return $this->normalizeExtraction($parsed);
+            }
+        }
+
+        // Strategy 4: Find any JSON object with nested content
+        if (preg_match('/\{(?:[^{}]|(?:\{[^{}]*\}))*\}/s', $content, $matches)) {
+            $parsed = json_decode($matches[0], true);
+            if ($this->isValidExtraction($parsed)) {
+                return $this->normalizeExtraction($parsed);
+            }
+        }
+
+        Log::error('DeepSeek returned unparseable content', [
+            'content' => substr($content, 0, 500),
+            'json_error' => json_last_error_msg(),
+        ]);
+
+        throw new \Exception('Failed to parse JSON from DeepSeek response: '.json_last_error_msg());
+    }
+
+    /**
+     * Strip various markdown code block formats.
+     */
+    protected function stripMarkdownCodeBlocks(string $content): string
+    {
+        $content = trim($content);
+
+        // Remove ```json or ``` blocks
+        $content = preg_replace('/^```(?:json|JSON)?\s*/m', '', $content);
+        $content = preg_replace('/\s*```$/m', '', $content);
+
+        // Remove leading/trailing whitespace and newlines
+        return trim($content);
+    }
+
+    /**
+     * Check if parsed data is a valid extraction result.
+     *
+     * @param  mixed  $parsed
+     */
+    protected function isValidExtraction($parsed): bool
+    {
+        return is_array($parsed)
+            && isset($parsed['title'])
+            && isset($parsed['body'])
+            && is_string($parsed['title'])
+            && is_string($parsed['body'])
+            && strlen($parsed['title']) > 0
+            && strlen($parsed['body']) > 0;
+    }
+
+    /**
+     * Normalize extraction result.
+     *
+     * @param  array{title: mixed, body: mixed}  $parsed
+     * @return array{title: string, body: string}
+     */
+    protected function normalizeExtraction(array $parsed): array
+    {
         return [
-            'title' => $parsed['title'],
-            'body' => $parsed['body'],
+            'title' => trim((string) $parsed['title']),
+            'body' => trim((string) $parsed['body']),
         ];
     }
 }
