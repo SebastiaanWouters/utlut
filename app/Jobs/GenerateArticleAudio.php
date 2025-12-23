@@ -80,8 +80,9 @@ class GenerateArticleAudio implements ShouldQueue
             return;
         }
 
-        $contentHash = hash('sha256', $this->article->body);
-        $contentLength = strlen($this->article->body);
+        $fullContent = $this->buildAudioContent();
+        $contentHash = hash('sha256', $fullContent);
+        $contentLength = strlen($fullContent);
         $disk = config('filesystems.default');
 
         /** @var ArticleAudio $audioRecord */
@@ -95,7 +96,7 @@ class GenerateArticleAudio implements ShouldQueue
             return;
         }
 
-        $chunks = $chunker->chunk($this->article->body);
+        $chunks = $chunker->chunk($fullContent);
         $totalChunks = count($chunks);
 
         // Initialize progress tracking on first attempt
@@ -122,6 +123,21 @@ class GenerateArticleAudio implements ShouldQueue
 
             throw $e;
         }
+    }
+
+    /**
+     * Build the full audio content with title announcement.
+     */
+    protected function buildAudioContent(): string
+    {
+        $title = $this->article->title ?? '';
+        $body = $this->article->body;
+
+        if (empty($title)) {
+            return $body;
+        }
+
+        return "Now playing: {$title}. {$body}";
     }
 
     /**
