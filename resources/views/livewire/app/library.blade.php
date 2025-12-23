@@ -1,10 +1,10 @@
 <?php
 
+use App\Jobs\ExtractArticleContent;
 use App\Models\Article;
 use App\Models\DeviceToken;
 use App\Models\Playlist;
 use App\Models\PlaylistItem;
-use App\Services\UrlContentExtractor;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Volt\Component;
@@ -19,9 +19,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     public string $search = '';
     public string $status = 'all';
     public string $addUrl = '';
-    public bool $isExtracting = false;
     public ?string $extractError = null;
-    public string $extractionStep = ''; // '', 'fetching', 'extracting', 'saving'
 
     #[Computed]
     public function articles()
@@ -46,6 +44,15 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
         return Playlist::whereIn('device_token_id', $deviceTokenIds)->get();
     }
 
+    #[Computed]
+    public function hasExtractingArticles(): bool
+    {
+        $deviceTokenIds = Auth::user()->deviceTokens()->pluck('id');
+        return Article::whereIn('device_token_id', $deviceTokenIds)
+            ->where('extraction_status', 'extracting')
+            ->exists();
+    }
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -61,10 +68,16 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
         \App\Jobs\GenerateArticleAudio::dispatch($article);
     }
 
+    public function retryExtraction(Article $article): void
+    {
+        $article->update(['extraction_status' => 'extracting']);
+        ExtractArticleContent::dispatch($article);
+    }
+
     public function addToPlaylist(Article $article, Playlist $playlist): void
     {
         $position = ($playlist->items()->max('position') ?? 0) + 1;
-        
+
         $playlist->items()->create([
             'article_id' => $article->id,
             'position' => $position,
@@ -83,16 +96,9 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
             'addUrl' => ['required', 'url', 'max:2048'],
         ]);
 
-        $this->isExtracting = true;
         $this->extractError = null;
-        $this->extractionStep = 'fetching';
 
         try {
-            $extractor = app(UrlContentExtractor::class);
-            $result = $extractor->extract($this->addUrl);
-
-            $this->extractionStep = 'saving';
-
             $deviceToken = Auth::user()->deviceTokens()->first();
 
             if (! $deviceToken) {
@@ -110,22 +116,17 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                     'url' => $this->addUrl,
                 ],
                 [
-                    'title' => $result['title'],
-                    'body' => $result['body'],
+                    'extraction_status' => 'extracting',
                 ]
             );
 
-            \App\Jobs\GenerateArticleAudio::dispatch($article);
+            ExtractArticleContent::dispatch($article);
 
             $this->addUrl = '';
-            $this->extractionStep = '';
             $this->dispatch('close-modal', name: 'add-from-url');
             $this->resetPage();
         } catch (\Exception $e) {
-            $this->extractError = 'Failed to extract article. Please check the URL and try again.';
-            $this->extractionStep = '';
-        } finally {
-            $this->isExtracting = false;
+            $this->extractError = 'Failed to add article. Please try again.';
         }
     }
 
@@ -133,12 +134,11 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     {
         $this->addUrl = '';
         $this->extractError = null;
-        $this->isExtracting = false;
-        $this->extractionStep = '';
     }
 }; ?>
 
-<div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8">
+<div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8"
+    @if($this->hasExtractingArticles) wire:poll.3s @endif>
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -241,13 +241,25 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                             <h3 class="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                                 {{ $article->title ?: $article->url }}
                             </h3>
-                            @if ($article->audio_url)
+                            @if ($article->extraction_status === 'extracting')
+                                <span class="inline-flex shrink-0 items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
+                                    <svg class="size-2.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    {{ __('Extracting') }}
+                                </span>
+                            @elseif ($article->extraction_status === 'failed')
+                                <span class="shrink-0 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:bg-red-950/50 dark:text-red-400">
+                                    {{ __('Failed') }}
+                                </span>
+                            @elseif ($article->audio_url)
                                 <span x-show="cached" x-cloak class="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
                                     {{ __('Offline') }}
                                 </span>
-                            @else
+                            @elseif ($article->extraction_status === 'ready')
                                 <span class="shrink-0 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
-                                    {{ __('Processing') }}
+                                    {{ __('Processing audio') }}
                                 </span>
                             @endif
                         </div>
@@ -256,7 +268,17 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
 
                     <!-- Actions -->
                     <div class="flex items-center gap-1">
-                        @if ($article->audio_url)
+                        @if ($article->extraction_status === 'extracting')
+                            <span class="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-400 dark:bg-zinc-700 dark:text-zinc-500">
+                                <svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                {{ __('Extracting...') }}
+                            </span>
+                        @elseif ($article->extraction_status === 'failed')
+                            <flux:button size="sm" variant="ghost" wire:click="retryExtraction({{ $article->id }})">{{ __('Retry') }}</flux:button>
+                        @elseif ($article->audio_url)
                             <button
                                 wire:click="play({{ $article->id }})"
                                 class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
@@ -271,7 +293,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                     <span>{{ __('Play') }}</span>
                                 </template>
                             </button>
-                        @else
+                        @elseif ($article->extraction_status === 'ready')
                             <flux:button size="sm" variant="ghost" wire:click="generateAudio({{ $article->id }})">{{ __('Generate') }}</flux:button>
                         @endif
 
@@ -340,7 +362,6 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                         wire:model="addUrl"
                         type="url"
                         placeholder="https://..."
-                        :disabled="$isExtracting"
                         autofocus
                     />
                     <flux:error name="addUrl" />
@@ -353,48 +374,13 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                     </div>
                 @endif
 
-                <!-- Loading indicator (shows immediately when request starts) -->
-                <div wire:loading wire:target="addFromUrl" class="flex flex-col gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
-                    <div class="flex items-center gap-3">
-                        <div class="relative flex size-8 items-center justify-center">
-                            <svg class="size-8 -rotate-90" viewBox="0 0 36 36">
-                                <circle cx="18" cy="18" r="16" fill="none" class="stroke-zinc-200 dark:stroke-zinc-700" stroke-width="3"></circle>
-                                <circle cx="18" cy="18" r="16" fill="none" class="stroke-zinc-900 dark:stroke-zinc-100" stroke-width="3" stroke-dasharray="100" stroke-dashoffset="50" stroke-linecap="round"></circle>
-                            </svg>
-                            <svg class="absolute size-4 animate-spin text-zinc-600 dark:text-zinc-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Extracting article...') }}</p>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('This may take a few moments') }}</p>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="flex justify-end gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-700">
                     <flux:modal.close>
-                        <flux:button variant="ghost" wire:loading.attr="disabled" wire:target="addFromUrl">{{ __('Cancel') }}</flux:button>
+                        <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
                     </flux:modal.close>
-                    <button
-                        type="submit"
-                        wire:loading.attr="disabled"
-                        wire:target="addFromUrl"
-                        class="inline-flex min-w-[120px] items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:focus:ring-zinc-100 dark:focus:ring-offset-zinc-900"
-                    >
-                        <span wire:loading.remove wire:target="addFromUrl" class="inline-flex items-center gap-2">
-                            <flux:icon.plus class="size-4" />
-                            <span>{{ __('Add Article') }}</span>
-                        </span>
-                        <span wire:loading wire:target="addFromUrl" class="inline-flex items-center gap-2">
-                            <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>{{ __('Adding...') }}</span>
-                        </span>
-                    </button>
+                    <flux:button type="submit" variant="primary" icon="plus">
+                        {{ __('Add Article') }}
+                    </flux:button>
                 </div>
             </form>
         </div>

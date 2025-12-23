@@ -1,9 +1,8 @@
 <?php
 
-use App\Jobs\GenerateArticleAudio;
+use App\Jobs\ExtractArticleContent;
 use App\Models\Article;
 use App\Models\User;
-use App\Services\UrlContentExtractor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Livewire\Volt\Volt;
@@ -39,22 +38,11 @@ test('add from url validates url format', function () {
         ->assertHasErrors(['addUrl' => 'url']);
 });
 
-test('add from url creates article and dispatches audio job', function () {
+test('add from url creates article and dispatches extraction job', function () {
     Queue::fake();
 
     $user = User::factory()->create();
     $url = 'https://example.com/test-article';
-
-    $mockExtractor = mock(UrlContentExtractor::class);
-    $mockExtractor->shouldReceive('extract')
-        ->once()
-        ->with($url)
-        ->andReturn([
-            'title' => 'Test Article Title',
-            'body' => 'This is the article body content.',
-        ]);
-
-    app()->instance(UrlContentExtractor::class, $mockExtractor);
 
     Volt::actingAs($user)
         ->test('app.library')
@@ -65,14 +53,13 @@ test('add from url creates article and dispatches audio job', function () {
 
     $this->assertDatabaseHas('articles', [
         'url' => $url,
-        'title' => 'Test Article Title',
-        'body' => 'This is the article body content.',
+        'extraction_status' => 'extracting',
     ]);
 
-    Queue::assertPushed(GenerateArticleAudio::class);
+    Queue::assertPushed(ExtractArticleContent::class, fn ($job) => $job->article->url === $url);
 });
 
-test('add from url updates existing article with same url', function () {
+test('add from url updates existing article and re-dispatches extraction job', function () {
     Queue::fake();
 
     $user = User::factory()->create();
@@ -88,18 +75,8 @@ test('add from url updates existing article with same url', function () {
         'url' => $url,
         'title' => 'Old Title',
         'body' => 'Old body content.',
+        'extraction_status' => 'ready',
     ]);
-
-    $mockExtractor = mock(UrlContentExtractor::class);
-    $mockExtractor->shouldReceive('extract')
-        ->once()
-        ->with($url)
-        ->andReturn([
-            'title' => 'New Title',
-            'body' => 'New body content.',
-        ]);
-
-    app()->instance(UrlContentExtractor::class, $mockExtractor);
 
     Volt::actingAs($user)
         ->test('app.library')
@@ -110,36 +87,10 @@ test('add from url updates existing article with same url', function () {
     $this->assertDatabaseCount('articles', 1);
     $this->assertDatabaseHas('articles', [
         'id' => $article->id,
-        'title' => 'New Title',
-        'body' => 'New body content.',
+        'extraction_status' => 'extracting',
     ]);
 
-    Queue::assertPushed(GenerateArticleAudio::class);
-});
-
-test('add from url handles extraction errors gracefully', function () {
-    Queue::fake();
-
-    $user = User::factory()->create();
-    $url = 'https://example.com/failing-article';
-
-    $mockExtractor = mock(UrlContentExtractor::class);
-    $mockExtractor->shouldReceive('extract')
-        ->once()
-        ->with($url)
-        ->andThrow(new \Exception('Failed to fetch URL'));
-
-    app()->instance(UrlContentExtractor::class, $mockExtractor);
-
-    Volt::actingAs($user)
-        ->test('app.library')
-        ->set('addUrl', $url)
-        ->call('addFromUrl')
-        ->assertSet('extractError', 'Failed to extract article. Please check the URL and try again.')
-        ->assertSet('isExtracting', false);
-
-    $this->assertDatabaseMissing('articles', ['url' => $url]);
-    Queue::assertNotPushed(GenerateArticleAudio::class);
+    Queue::assertPushed(ExtractArticleContent::class);
 });
 
 test('add from url creates device token if none exists', function () {
@@ -149,17 +100,6 @@ test('add from url creates device token if none exists', function () {
     $url = 'https://example.com/new-article';
 
     $this->assertDatabaseMissing('device_tokens', ['user_id' => $user->id]);
-
-    $mockExtractor = mock(UrlContentExtractor::class);
-    $mockExtractor->shouldReceive('extract')
-        ->once()
-        ->with($url)
-        ->andReturn([
-            'title' => 'New Article',
-            'body' => 'Content.',
-        ]);
-
-    app()->instance(UrlContentExtractor::class, $mockExtractor);
 
     Volt::actingAs($user)
         ->test('app.library')
@@ -171,4 +111,37 @@ test('add from url creates device token if none exists', function () {
         'user_id' => $user->id,
         'name' => 'Web',
     ]);
+
+    $this->assertDatabaseHas('articles', [
+        'url' => $url,
+        'extraction_status' => 'extracting',
+    ]);
+
+    Queue::assertPushed(ExtractArticleContent::class);
+});
+
+test('retry extraction dispatches new extraction job', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $deviceToken = $user->deviceTokens()->create([
+        'name' => 'Web',
+        'token' => 'test-token',
+        'token_hash' => hash('sha256', 'test-token'),
+    ]);
+
+    $article = Article::create([
+        'device_token_id' => $deviceToken->id,
+        'url' => 'https://example.com/failed-article',
+        'extraction_status' => 'failed',
+    ]);
+
+    Volt::actingAs($user)
+        ->test('app.library')
+        ->call('retryExtraction', $article);
+
+    $article->refresh();
+    expect($article->extraction_status)->toBe('extracting');
+
+    Queue::assertPushed(ExtractArticleContent::class, fn ($job) => $job->article->id === $article->id);
 });

@@ -118,22 +118,44 @@ class UrlContentExtractor
     }
 
     /**
-     * Convert HTML to plain text.
+     * Convert HTML to plain text, extracting only relevant content.
      */
     protected function htmlToPlainText(string $html): string
     {
-        $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
-        $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html);
-        $html = preg_replace('/<nav\b[^>]*>.*?<\/nav>/is', '', $html);
-        $html = preg_replace('/<footer\b[^>]*>.*?<\/footer>/is', '', $html);
-        $html = preg_replace('/<header\b[^>]*>.*?<\/header>/is', '', $html);
+        // Extract only body content first
+        if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $html, $matches)) {
+            $html = $matches[1];
+        }
+
+        // Remove non-content elements
+        $removePatterns = [
+            '/<script\b[^>]*>.*?<\/script>/is',
+            '/<style\b[^>]*>.*?<\/style>/is',
+            '/<nav\b[^>]*>.*?<\/nav>/is',
+            '/<footer\b[^>]*>.*?<\/footer>/is',
+            '/<header\b[^>]*>.*?<\/header>/is',
+            '/<aside\b[^>]*>.*?<\/aside>/is',
+            '/<noscript\b[^>]*>.*?<\/noscript>/is',
+            '/<iframe\b[^>]*>.*?<\/iframe>/is',
+            '/<form\b[^>]*>.*?<\/form>/is',
+            '/<svg\b[^>]*>.*?<\/svg>/is',
+            // Remove common ad/sidebar/comment containers by class
+            '/<[^>]+class="[^"]*(?:sidebar|comment|advertisement|ad-|social-share|related-posts|newsletter)[^"]*"[^>]*>.*?<\/[^>]+>/is',
+            // Remove elements with common non-content IDs
+            '/<[^>]+id="[^"]*(?:sidebar|comments|advertisement|footer|header|nav)[^"]*"[^>]*>.*?<\/[^>]+>/is',
+        ];
+
+        foreach ($removePatterns as $pattern) {
+            $html = preg_replace($pattern, '', $html);
+        }
 
         $text = strip_tags($html);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = preg_replace('/\s+/', ' ', $text);
         $text = trim($text);
 
-        $maxLength = config('utlut.extractor.max_length');
+        // Use smaller max length since we're now extracting cleaner content
+        $maxLength = min(config('utlut.extractor.max_length'), 8000);
         if (strlen($text) > $maxLength) {
             $text = substr($text, 0, $maxLength).'...';
         }

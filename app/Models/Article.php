@@ -18,6 +18,7 @@ class Article extends Model
         'title',
         'body',
         'audio_url',
+        'extraction_status',
     ];
 
     /**
