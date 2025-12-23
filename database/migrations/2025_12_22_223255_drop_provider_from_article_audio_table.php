@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('article_audio', function (Blueprint $table) {
-            $table->dropColumn('provider');
-        });
+        if (Schema::hasColumn('article_audio', 'provider')) {
+            Schema::table('article_audio', function (Blueprint $table) {
+                $table->dropColumn('provider');
+            });
+        }
     }
 
     /**
