@@ -95,7 +95,7 @@ new #[Title('Playlists')] class extends Component
                                 icon="ellipsis-vertical"
                                 icon-only
                                 size="sm"
-                                class="shrink-0 text-zinc-400 opacity-0 group-hover:opacity-100"
+                                class="shrink-0 text-zinc-500 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 dark:text-zinc-400"
                             />
                             <flux:menu>
                                 <flux:menu.item

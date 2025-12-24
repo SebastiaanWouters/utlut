@@ -481,10 +481,28 @@ function createPlayerStore() {
                 return;
             }
 
+            const oldIndex = this.currentIndex;
+            const shouldRemoveOldTrack = this.repeatMode === 'off' && oldIndex >= 0 && oldIndex < this.queue.length;
+
+            // Helper to remove old track and adjust index
+            const removeOldAndPlay = (nextIdx) => {
+                if (shouldRemoveOldTrack) {
+                    this.queue.splice(oldIndex, 1);
+                    // Adjust nextIdx if it was after the removed track
+                    if (nextIdx > oldIndex) {
+                        nextIdx--;
+                    }
+                    this.persistState();
+                }
+                this.playTrack(nextIdx);
+            };
+
             // Shuffle mode: pick random unplayed ready track
             if (this.shuffleEnabled) {
                 const unplayedReadyIndices = [];
                 for (let i = 0; i < this.queue.length; i++) {
+                    // Skip the old track we're about to remove when checking unplayed
+                    if (shouldRemoveOldTrack && i === oldIndex) continue;
                     if (!this.shuffleHistory.includes(this.queue[i].id) && this.isArticleReady(this.queue[i])) {
                         unplayedReadyIndices.push(i);
                     }
@@ -494,7 +512,7 @@ function createPlayerStore() {
                     const randomIdx = unplayedReadyIndices[Math.floor(Math.random() * unplayedReadyIndices.length)];
                     this.shuffleHistory.push(this.queue[randomIdx].id);
                     window.__utlutPlayerState.shuffleHistory = this.shuffleHistory;
-                    this.playTrack(randomIdx);
+                    removeOldAndPlay(randomIdx);
                     return;
                 }
 
@@ -514,6 +532,13 @@ function createPlayerStore() {
                         this.shuffleHistory.push(this.queue[randomIdx].id);
                         this.playTrack(randomIdx);
                     }
+                } else if (shouldRemoveOldTrack) {
+                    // Shuffle + repeat off, no more unplayed tracks - remove current and stop
+                    this.queue.splice(oldIndex, 1);
+                    this.currentTrack = null;
+                    this.currentIndex = -1;
+                    audio.pause();
+                    this.persistState();
                 }
                 return;
             }
@@ -521,7 +546,7 @@ function createPlayerStore() {
             // Normal mode: find next ready track
             const nextIndex = this.findNextPlayableIndex(this.currentIndex);
             if (nextIndex !== -1) {
-                this.playTrack(nextIndex);
+                removeOldAndPlay(nextIndex);
             } else if (this.repeatMode === 'all') {
                 // Loop back to start - find first ready track
                 for (let i = 0; i < this.queue.length; i++) {
@@ -530,6 +555,13 @@ function createPlayerStore() {
                         return;
                     }
                 }
+            } else if (shouldRemoveOldTrack) {
+                // No next track, repeat off - remove current and stop
+                this.queue.splice(oldIndex, 1);
+                this.currentTrack = null;
+                this.currentIndex = -1;
+                audio.pause();
+                this.persistState();
             }
         },
 

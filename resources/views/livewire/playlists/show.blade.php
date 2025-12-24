@@ -180,18 +180,38 @@ new #[Title('Playlist Detail')] class extends Component {
                         @endif
                     </div>
 
-                    <div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div class="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                        {{-- Mobile reorder buttons --}}
+                        <div class="flex flex-col sm:hidden">
+                            <button
+                                type="button"
+                                wire:click="reorder({{ $item->id }}, {{ $item->position - 1 }})"
+                                @if($index === 0) disabled @endif
+                                class="flex size-7 items-center justify-center rounded-t-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-30 dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                            >
+                                <flux:icon name="chevron-up" class="size-4" />
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="reorder({{ $item->id }}, {{ $item->position + 1 }})"
+                                @if($loop->last) disabled @endif
+                                class="flex size-7 items-center justify-center rounded-b-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-30 dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                            >
+                                <flux:icon name="chevron-down" class="size-4" />
+                            </button>
+                        </div>
+                        {{-- Desktop drag handle --}}
                         <flux:button
                             icon="bars-3"
                             variant="ghost"
                             size="sm"
-                            class="cursor-grab text-zinc-400"
+                            class="hidden cursor-grab text-zinc-400 dark:text-zinc-500 sm:flex"
                         />
                         <flux:button
                             icon="x-mark"
                             variant="ghost"
                             size="sm"
-                            class="text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
+                            class="text-zinc-500 hover:text-red-500 dark:text-zinc-400 dark:hover:text-red-400"
                             wire:click="removeItem({{ $item->id }})"
                             wire:confirm="{{ __('Remove this article?') }}"
                         />

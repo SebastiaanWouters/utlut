@@ -627,10 +627,28 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                                 <span class="line-clamp-1 text-xs text-zinc-500 dark:text-zinc-500" x-text="$store.player.getHostname(track.url)"></span>
                             </div>
 
+                            {{-- Reorder Buttons --}}
+                            <div class="flex shrink-0 flex-col">
+                                <button
+                                    @click.stop="$store.player.moveInQueue(index, index - 1)"
+                                    :disabled="index === 0"
+                                    class="flex size-7 items-center justify-center rounded-t-lg text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-600 disabled:opacity-30 disabled:hover:bg-transparent dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                                >
+                                    <flux:icon name="chevron-up" class="size-4" />
+                                </button>
+                                <button
+                                    @click.stop="$store.player.moveInQueue(index, index + 1)"
+                                    :disabled="index === $store.player.queue.length - 1"
+                                    class="flex size-7 items-center justify-center rounded-b-lg text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-600 disabled:opacity-30 disabled:hover:bg-transparent dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                                >
+                                    <flux:icon name="chevron-down" class="size-4" />
+                                </button>
+                            </div>
+
                             {{-- Remove Button --}}
                             <button
                                 @click.stop="$store.player.removeFromQueue(index)"
-                                class="flex size-9 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-red-500 dark:hover:bg-zinc-700 dark:hover:text-red-400"
+                                class="flex size-9 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-red-500 dark:text-zinc-500 dark:hover:bg-zinc-700 dark:hover:text-red-400"
                             >
                                 <flux:icon name="x-mark" class="size-4" />
                             </button>
