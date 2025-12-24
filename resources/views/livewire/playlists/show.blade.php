@@ -222,7 +222,7 @@ new #[Title('Playlist Detail')] class extends Component {
     @endif
 
     <!-- Add Articles Modal -->
-    <flux:modal name="add-articles" class="md:w-[500px]">
+    <flux:modal name="add-articles" class="max-w-full sm:max-w-md md:max-w-lg">
         <div class="flex flex-col gap-5">
             <div>
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Add Articles') }}</h2>
@@ -242,7 +242,7 @@ new #[Title('Playlist Detail')] class extends Component {
                             <h4 class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $article->title ?: $article->url }}</h4>
                             <p class="truncate text-xs text-zinc-400 dark:text-zinc-500">{{ parse_url($article->url, PHP_URL_HOST) }}</p>
                         </div>
-                        <flux:button size="sm" icon="plus" variant="ghost" wire:click="addItem({{ $article->id }})">{{ __('Add') }}</flux:button>
+                        <flux:button size="sm" icon="plus" variant="ghost" class="shrink-0" wire:click="addItem({{ $article->id }})">{{ __('Add') }}</flux:button>
                     </div>
                 @empty
                     <div class="flex flex-col items-center justify-center gap-2 py-8">
