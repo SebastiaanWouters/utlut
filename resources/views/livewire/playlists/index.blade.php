@@ -89,12 +89,13 @@ new #[Title('Playlists')] class extends Component
                             </div>
                         </div>
 
-                        <flux:dropdown position="bottom" align="end" @click.prevent @click.stop>
+                        <flux:dropdown position="bottom" align="end">
                             <flux:button
                                 variant="ghost"
                                 icon="ellipsis-vertical"
                                 icon-only
                                 size="sm"
+                                @click.stop
                                 class="shrink-0 text-zinc-500 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 dark:text-zinc-400"
                             />
                             <flux:menu>

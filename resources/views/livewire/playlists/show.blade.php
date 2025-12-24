@@ -222,7 +222,7 @@ new #[Title('Playlist Detail')] class extends Component {
     @endif
 
     <!-- Add Articles Modal -->
-    <flux:modal name="add-articles" class="max-w-[calc(100%-1rem)] sm:max-w-md md:max-w-lg">
+    <flux:modal name="add-articles" class="max-w-[calc(100%-0.5rem)] sm:max-w-md md:max-w-lg">
         <div class="flex flex-col gap-5">
             <div>
                 <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Add Articles') }}</h2>
