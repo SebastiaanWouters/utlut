@@ -177,7 +177,11 @@ new class extends Component {
     }
 } ?>
 
-<section class="w-full">
+<section
+    class="page-content w-full"
+    x-data
+    x-bind:class="$store.player.currentTrack ? 'pb-20' : ''"
+>
     @include('partials.settings-heading')
 
     <x-settings.layout
