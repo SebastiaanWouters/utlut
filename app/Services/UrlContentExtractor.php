@@ -170,18 +170,29 @@ class UrlContentExtractor
         $userPrompt = <<<PROMPT
 Clean and structure this article content for text-to-speech conversion. Return JSON: {"title": "...", "body": "..."}
 
-Rules:
-- title: {$titleInstruction}
-- body: The main article content only, cleaned up for audio narration
-- Remove navigation, ads, footers, sidebars, cookie notices, subscription prompts
-- Remove URLs, image captions, "Read more" links, social share buttons
-- Remove author bylines ("By John Smith", "Written by...", "Author: ...")
-- Remove publication dates ("December 24, 2024", "Published on...", "Updated...")
-- Remove reading time indicators ("5 min read", "Reading time...")
-- Remove category tags, share/comment counts, source attributions ("Reuters -", "AP -")
-- Start body with the actual article content, not metadata
-- Keep paragraphs readable and flowing naturally
-- Keep original language if not English
+IMPORTANT: Include ALL actual article content - do not summarize or truncate. The body should contain the complete article text.
+
+Title: {$titleInstruction}
+
+Strip this metadata (do NOT include in body):
+- Author names/bylines ("By John Smith", "Written by...", "Author: ...", reporter names)
+- Publication/update dates ("December 24, 2024", "Published on...", "Updated...", timestamps)
+- Reading time ("5 min read", "Reading time...", "X minute read")
+- Source attributions at start ("Reuters -", "AP -", "BBC News -", agency names)
+- Category/section tags ("Politics", "Opinion", "Breaking News")
+- Location datelines ("NEW YORK —", "LONDON (Reuters) —")
+- Social stats (share counts, comment counts, likes)
+- Navigation elements, ads, footers, sidebars, cookie notices
+- URLs, image captions, "Read more" links, social share buttons
+- Newsletter/subscription prompts
+- Copyright notices, disclaimers
+
+Keep this content:
+- The complete article text from start to finish
+- All paragraphs, quotes, and substantive content
+- Names mentioned within the article (people being written about)
+- Dates that are part of the story (not publication dates)
+- Original language if not English
 
 Content to clean:
 {$text}
@@ -425,16 +436,26 @@ PROMPT;
         $userPrompt = <<<PROMPT
 Extract the main article content from this webpage text. Return JSON: {"title": "...", "body": "..."}
 
-Rules:
-- title: The main headline/title
-- body: The article content only, cleaned for audio narration
-- Remove navigation, ads, footers, sidebars
-- Remove author bylines ("By John Smith", "Written by...", "Author: ...")
-- Remove publication dates ("December 24, 2024", "Published on...", "Updated...")
-- Remove reading time indicators ("5 min read", "Reading time...")
-- Remove category tags, share/comment counts, source attributions ("Reuters -", "AP -")
-- Start body with the actual article content, not metadata
-- Keep original language if not English
+IMPORTANT: Include ALL actual article content - do not summarize or truncate. The body should contain the complete article text.
+
+Strip this metadata (do NOT include in body):
+- Author names/bylines ("By John Smith", "Written by...", "Author: ...", reporter names)
+- Publication/update dates ("December 24, 2024", "Published on...", "Updated...", timestamps)
+- Reading time ("5 min read", "Reading time...", "X minute read")
+- Source attributions at start ("Reuters -", "AP -", "BBC News -", agency names)
+- Category/section tags ("Politics", "Opinion", "Breaking News")
+- Location datelines ("NEW YORK —", "LONDON (Reuters) —")
+- Social stats (share counts, comment counts, likes)
+- Navigation elements, related articles, "Read more" links
+- Newsletter/subscription prompts
+- Copyright notices, disclaimers
+
+Keep this content:
+- The complete article text from start to finish
+- All paragraphs, quotes, and substantive content
+- Names mentioned within the article (people being written about)
+- Dates that are part of the story (not publication dates)
+- Original language if not English
 
 Webpage text:
 {$text}
