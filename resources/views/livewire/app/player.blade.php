@@ -70,7 +70,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
     <div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <!-- Main Player Area -->
-        <div class="flex flex-1 flex-col items-center justify-center px-4 py-6 md:px-6 md:py-10 lg:py-14">
+        <div class="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-6 md:px-6 md:py-10 lg:overflow-visible lg:py-14">
             <div class="flex w-full max-w-md flex-col items-center gap-6">
                 <!-- Album Art -->
                 <div class="relative aspect-square w-full max-w-[180px]">
@@ -281,7 +281,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         </div>
 
         <!-- Queue Panel -->
-        <div class="queue-panel flex min-h-0 max-h-[45vh] w-full flex-col border-t border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:max-h-none lg:w-80 lg:rounded-tl-2xl lg:border-l lg:border-t-0 xl:w-96">
+        <div class="queue-panel flex min-h-0 flex-1 w-full flex-col border-t border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:flex-none lg:w-80 lg:rounded-tl-2xl lg:border-l lg:border-t-0 xl:w-96">
             <!-- Header -->
             <div class="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
                 <div class="flex items-center gap-2.5">
@@ -533,13 +533,6 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         @media (max-width: 640px) {
             .queue-item {
                 min-height: 56px;
-            }
-        }
-
-        /* Landscape mobile optimization */
-        @media (max-height: 500px) and (orientation: landscape) {
-            .queue-panel {
-                max-height: 40vh;
             }
         }
 
