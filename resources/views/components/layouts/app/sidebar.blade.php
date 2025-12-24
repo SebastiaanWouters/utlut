@@ -202,7 +202,7 @@
                 ></div>
             </div>
 
-            <div class="flex h-16 items-center gap-3 px-2 sm:gap-4 sm:px-6">
+            <div class="flex h-16 items-center gap-3 px-2 sm:gap-4 sm:px-4">
                 {{-- Track Info (clickable to navigate to full player) --}}
                 <a
                     href="{{ route('player') }}"

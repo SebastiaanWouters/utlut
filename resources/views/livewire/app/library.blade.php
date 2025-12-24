@@ -214,7 +214,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     }
 }; ?>
 
-<div class="flex h-full w-full flex-1 flex-col gap-6 px-2 py-4 sm:px-6 lg:px-8"
+<div class="flex h-full w-full flex-1 flex-col gap-6 px-2 py-4 sm:px-4 lg:px-6"
     wire:poll.{{ $this->optimalPollingInterval }}ms
     x-on:article-deleted.window="
         if (window.AudioCache && $store.player.token) {
