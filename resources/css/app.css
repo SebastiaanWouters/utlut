@@ -51,15 +51,15 @@
         overscroll-behavior: none;
     }
 
-    /* Enable pull-to-refresh on scrollable content */
+    /* Disable pull-to-refresh - use manual refresh button instead */
     [data-flux-main] {
-        overscroll-behavior-y: auto;
+        overscroll-behavior-y: none;
         -webkit-overflow-scrolling: touch;
     }
 
-    /* Safe area bottom padding for mini player */
+    /* Safe area bottom padding for mini player (h-16 = 4rem + buffer) */
     .pb-safe-bottom {
-        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
     }
 }
 

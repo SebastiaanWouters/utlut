@@ -26,7 +26,7 @@ new #[Title('Setup')] class extends Component {
     }
 }; ?>
 
-<div class="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col gap-6 p-4 md:p-8">
+<div class="mx-auto flex h-full w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
     <!-- Header -->
     <div>
         <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Setup') }}</h1>

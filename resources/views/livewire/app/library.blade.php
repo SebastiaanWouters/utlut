@@ -214,7 +214,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     }
 }; ?>
 
-<div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8"
+<div class="flex h-full w-full flex-1 flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8"
     wire:poll.{{ $this->optimalPollingInterval }}ms
     x-on:article-deleted.window="
         if (window.AudioCache && $store.player.token) {
@@ -230,9 +230,19 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
             <h1 class="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Library') }}</h1>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Your saved articles') }}</p>
         </div>
-        <flux:modal.trigger name="add-from-url">
-            <flux:button icon="plus" variant="primary">{{ __('Add URL') }}</flux:button>
-        </flux:modal.trigger>
+        <div class="flex items-center gap-2">
+            <flux:button
+                wire:click="$refresh"
+                icon="arrow-path"
+                variant="ghost"
+                title="{{ __('Refresh') }}"
+                wire:loading.attr="disabled"
+                wire:loading.class="animate-spin"
+            />
+            <flux:modal.trigger name="add-from-url">
+                <flux:button icon="plus" variant="primary">{{ __('Add URL') }}</flux:button>
+            </flux:modal.trigger>
+        </div>
     </div>
 
     <!-- Filters -->

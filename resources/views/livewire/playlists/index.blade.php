@@ -30,7 +30,7 @@ new #[Title('Playlists')] class extends Component
     }
 }; ?>
 
-<div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8">
+<div class="flex h-full w-full flex-1 flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
