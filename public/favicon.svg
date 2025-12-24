@@ -1,0 +1,12 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .icon-fill { fill: #171717; }
+        .icon-stroke { stroke: #171717; }
+        @media (prefers-color-scheme: dark) {
+            .icon-fill { fill: #fafafa; }
+            .icon-stroke { stroke: #fafafa; }
+        }
+    </style>
+    <path class="icon-fill" d="M5 4v9a7 7 0 1 0 14 0V4h-4v9a3 3 0 1 1-6 0V4H5z"/>
+    <path class="icon-stroke" d="M10.5 8.5c1.5 1.2 1.5 4.3 0 5.5" fill="none" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+</svg>

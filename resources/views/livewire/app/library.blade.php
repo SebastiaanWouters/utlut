@@ -321,7 +321,10 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                 <span class="h-2 w-0.5 animate-[bounce_0.6s_ease-in-out_infinite_0.2s] rounded-full bg-current"></span>
                             </div>
                         </template>
-                        <template x-if="!($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }} && $store.player.isPlaying)">
+                        <template x-if="$store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }} && !$store.player.isPlaying">
+                            <flux:icon.pause variant="solid" class="size-4" />
+                        </template>
+                        <template x-if="!($store.player.currentTrack && $store.player.currentTrack.id === {{ $article->id }})">
                             @if ($article->audio_url)
                                 <flux:icon.play variant="solid" class="size-4" />
                             @else

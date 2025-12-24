@@ -1,24 +1,15 @@
-<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" {{ $attributes }}>
-    <!-- Document body -->
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {{ $attributes }}>
+    {{-- Minimalist U-shape with integrated audio wave --}}
     <path
-        d="M80 80 H240 L320 160 V416 A32 32 0 0 1 288 448 H112 A32 32 0 0 1 80 416 V112 A32 32 0 0 1 112 80 Z"
+        d="M5 4v9a7 7 0 1 0 14 0V4h-4v9a3 3 0 1 1-6 0V4H5z"
         fill="currentColor"
     />
-
-    <!-- Folded corner highlight -->
+    {{-- Subtle audio wave accent --}}
     <path
-        d="M240 80 L240 128 A32 32 0 0 0 272 160 L320 160 L240 80"
-        fill="currentColor"
-        opacity="0.5"
+        d="M10.5 8.5c1.5 1.2 1.5 4.3 0 5.5"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        opacity="0.4"
     />
-
-    <!-- Text lines -->
-    <line x1="128" y1="224" x2="272" y2="224" class="stroke-white dark:stroke-black" stroke-width="18" stroke-linecap="round"/>
-    <line x1="128" y1="280" x2="240" y2="280" class="stroke-white dark:stroke-black" stroke-width="18" stroke-linecap="round"/>
-    <line x1="128" y1="336" x2="208" y2="336" class="stroke-white dark:stroke-black" stroke-width="18" stroke-linecap="round"/>
-
-    <!-- Sound waves -->
-    <path d="M352 200 Q392 256 352 312" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round"/>
-    <path d="M392 160 Q456 256 392 352" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" opacity="0.7"/>
-    <path d="M432 120 Q512 256 432 392" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" opacity="0.4"/>
 </svg>
