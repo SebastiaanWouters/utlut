@@ -70,12 +70,12 @@
         </flux:sidebar>
 
         <!-- Mobile User Menu -->
-        <flux:header class="!px-2 pt-[env(safe-area-inset-top)] sm:!px-4 lg:hidden">
+        <flux:header class="!px-4 pt-[env(safe-area-inset-top)] sm:!px-6 lg:hidden">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <flux:spacer />
 
-            <flux:dropdown position="top" align="end">
+            <flux:dropdown position="top" align="end" class="-mr-2">
                 <flux:profile
                     :initials="auth()->user()->initials()"
                     icon-trailing="chevron-down"
@@ -202,7 +202,7 @@
                 ></div>
             </div>
 
-            <div class="flex h-16 items-center gap-3 px-2 sm:gap-4 sm:px-4">
+            <div class="flex h-16 items-center gap-3 px-4 sm:gap-4 sm:px-6">
                 {{-- Track Info (clickable to navigate to full player) --}}
                 <a
                     href="{{ route('player') }}"
