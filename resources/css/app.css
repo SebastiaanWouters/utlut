@@ -51,6 +51,15 @@
         overscroll-behavior: none;
     }
 
+    /* Background on html prevents white gaps during overscroll on mobile */
+    html {
+        @apply bg-white;
+    }
+
+    html.dark {
+        @apply bg-zinc-950;
+    }
+
     /* Disable pull-to-refresh - use manual refresh button instead */
     [data-flux-main] {
         overscroll-behavior-y: none;

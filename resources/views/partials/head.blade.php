@@ -12,7 +12,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Utlut">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" id="theme-color-meta" content="#0a0a0a">
+<script>
+    (function() {
+        var meta = document.getElementById('theme-color-meta');
+        function updateThemeColor() {
+            meta.content = document.documentElement.classList.contains('dark') ? '#0a0a0a' : '#ffffff';
+        }
+        updateThemeColor();
+        new MutationObserver(updateThemeColor).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    })();
+</script>
 
 @auth
     <meta name="utlut-device-token" content="{{ auth()->user()->deviceTokens()->first()?->token ?? '' }}">
