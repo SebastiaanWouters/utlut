@@ -209,11 +209,21 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
         }
 
         $article->delete();
+
+        $this->dispatch('article-deleted', articleId: $articleId);
     }
 }; ?>
 
 <div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8"
-    wire:poll.{{ $this->optimalPollingInterval }}ms>
+    wire:poll.{{ $this->optimalPollingInterval }}ms
+    x-on:article-deleted.window="
+        if (window.AudioCache && $store.player.token) {
+            window.AudioCache.remove($event.detail.articleId, $store.player.token);
+        }
+        if (window.MetadataDB) {
+            window.MetadataDB.delete($event.detail.articleId);
+        }
+    ">
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

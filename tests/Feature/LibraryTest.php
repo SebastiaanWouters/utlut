@@ -168,3 +168,15 @@ test('hasProcessingArticles returns false when all articles are ready', function
     $component = Volt::test('app.library');
     expect($component->get('hasProcessingArticles'))->toBeFalse();
 });
+
+test('deleting article dispatches article-deleted event for frontend cleanup', function () {
+    $user = User::factory()->create();
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    $article = Article::factory()->create(['device_token_id' => $deviceToken->id]);
+
+    $this->actingAs($user);
+
+    Volt::test('app.library')
+        ->call('deleteArticle', $article->id)
+        ->assertDispatched('article-deleted', articleId: $article->id);
+});

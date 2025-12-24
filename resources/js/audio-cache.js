@@ -23,6 +23,15 @@ export const MetadataDB = {
             const request = db.transaction('articles').objectStore('articles').get(id);
             request.onsuccess = (e) => resolve(e.target.result);
         });
+    },
+    async delete(id) {
+        const db = await dbPromise;
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('articles', 'readwrite');
+            const request = tx.objectStore('articles').delete(id);
+            request.onsuccess = () => resolve(true);
+            request.onerror = (e) => reject(e.target.error);
+        });
     }
 };
 
