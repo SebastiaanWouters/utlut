@@ -72,7 +72,7 @@ new class extends Component {
 <section
     class="page-content w-full"
     x-data
-    x-bind:class="$store.player.currentTrack ? 'pb-20' : ''"
+    x-bind:class="$store.player.currentTrack ? 'pb-24' : 'pb-2'"
 >
     @include('partials.settings-heading')
 
