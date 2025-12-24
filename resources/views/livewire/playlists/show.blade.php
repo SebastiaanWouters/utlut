@@ -181,8 +181,8 @@ new #[Title('Playlist Detail')] class extends Component {
                     </div>
 
                     <div class="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                        {{-- Mobile reorder buttons --}}
-                        <div class="flex flex-col sm:hidden">
+                        {{-- Reorder buttons --}}
+                        <div class="flex flex-col">
                             <button
                                 type="button"
                                 wire:click="reorder({{ $item->id }}, {{ $item->position - 1 }})"
@@ -200,13 +200,6 @@ new #[Title('Playlist Detail')] class extends Component {
                                 <flux:icon name="chevron-down" class="size-4" />
                             </button>
                         </div>
-                        {{-- Desktop drag handle --}}
-                        <flux:button
-                            icon="bars-3"
-                            variant="ghost"
-                            size="sm"
-                            class="hidden cursor-grab text-zinc-400 dark:text-zinc-500 sm:flex"
-                        />
                         <flux:button
                             icon="x-mark"
                             variant="ghost"
