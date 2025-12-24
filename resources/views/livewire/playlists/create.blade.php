@@ -37,7 +37,7 @@ new #[Title('Create Playlist')] class extends Component {
     }
 }; ?>
 
-<div class="mx-auto flex h-full w-full max-w-lg flex-1 flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
+<div class="mx-auto flex h-full w-full max-w-lg flex-1 flex-col gap-6 px-2 py-4 sm:px-4 lg:px-6">
     <!-- Header -->
     <div class="flex items-center gap-3">
         <flux:button icon="chevron-left" variant="ghost" size="sm" :href="route('playlists.index')" wire:navigate />
