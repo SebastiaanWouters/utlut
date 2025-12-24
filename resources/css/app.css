@@ -49,7 +49,6 @@
     /* PWA layout - prevent body scroll, enable scroll on main content */
     html, body {
         overscroll-behavior: none;
-        -webkit-overflow-scrolling: touch;
     }
 
     /* Enable pull-to-refresh on scrollable content */
@@ -58,11 +57,9 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    /* Safe area insets for iOS notch/home indicator */
-    @supports (padding-bottom: env(safe-area-inset-bottom)) {
-        .pb-20 {
-            padding-bottom: calc(5rem + env(safe-area-inset-bottom));
-        }
+    /* Safe area bottom padding for mini player */
+    .pb-safe-bottom {
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
     }
 }
 

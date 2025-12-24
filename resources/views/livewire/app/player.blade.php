@@ -168,16 +168,16 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
                     <!-- Skip Back 15s -->
                     <button
-                        class="flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        class="relative flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
                         @click="$store.player.skipBackward(15)"
                         x-bind:disabled="!$store.player.currentTrack"
                         title="{{ __('Back 15 seconds') }}"
                     >
-                        <svg class="size-6" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12.5 3a9.5 9.5 0 1 0 9.5 9.5h-2A7.5 7.5 0 1 1 12.5 5V3z"/>
-                            <path d="M12.5 3V1L8.5 4l4 3V5a7.5 7.5 0 0 1 0 0V3z"/>
-                            <text x="7" y="15.5" font-size="7" font-weight="600" font-family="system-ui, sans-serif">15</text>
+                        <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9"/>
+                            <path d="M3 7v5h5"/>
                         </svg>
+                        <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold">15</span>
                     </button>
 
                     <!-- Play/Pause -->
@@ -202,16 +202,16 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
                     <!-- Skip Forward 15s -->
                     <button
-                        class="flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        class="relative flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
                         @click="$store.player.skipForward(15)"
                         x-bind:disabled="!$store.player.currentTrack"
                         title="{{ __('Forward 15 seconds') }}"
                     >
-                        <svg class="size-6" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M11.5 3a9.5 9.5 0 1 1-9.5 9.5h2A7.5 7.5 0 1 0 11.5 5V3z"/>
-                            <path d="M11.5 3V1l4 3-4 3V5a7.5 7.5 0 0 0 0 0V3z"/>
-                            <text x="6" y="15.5" font-size="7" font-weight="600" font-family="system-ui, sans-serif">15</text>
+                        <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 1 1-9-9"/>
+                            <path d="M21 7v5h-5"/>
                         </svg>
+                        <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold">15</span>
                     </button>
 
                     <!-- Next Track -->
@@ -311,7 +311,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
             <div class="mx-4 h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent dark:via-zinc-700/60 sm:mx-5"></div>
 
             <!-- Queue List -->
-            <div class="queue-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 sm:px-3 sm:py-3">
+            <div class="queue-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 pb-[env(safe-area-inset-bottom)] pt-2 sm:px-3 sm:pt-3">
                 <div class="space-y-1">
                     <template x-for="(track, index) in $store.player.queue" :key="track.id">
                         <div
