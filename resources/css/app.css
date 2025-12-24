@@ -66,7 +66,12 @@
 @layer components {
     /* Standard page content padding - use on all page root elements */
     .page-content {
-        @apply px-4 py-4;
+        @apply px-4 pt-4;
+        /* Bottom padding accounts for:
+           - Mobile browser address bar (~50-60px) when env() returns 0
+           - PWA safe area (home indicator) when env() returns a value
+           Using max() ensures content is never cut off in either context */
+        padding-bottom: max(4rem, calc(1rem + env(safe-area-inset-bottom, 0px)));
     }
 }
 

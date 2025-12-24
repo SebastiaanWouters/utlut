@@ -29,7 +29,7 @@ new #[Title('Setup')] class extends Component {
 <div
     class="page-content mx-auto flex w-full max-w-2xl flex-col gap-6"
     x-data
-    x-bind:class="$store.player.currentTrack ? 'pb-28' : 'pb-6'"
+    x-bind:style="$store.player.currentTrack ? 'padding-bottom: max(7rem, env(safe-area-inset-bottom, 4rem))' : ''"
 >
     <!-- Header -->
     <div>

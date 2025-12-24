@@ -39,7 +39,7 @@ new class extends Component {
 <section
     class="page-content w-full"
     x-data
-    x-bind:class="$store.player.currentTrack ? 'pb-24' : 'pb-2'"
+    x-bind:style="$store.player.currentTrack ? 'padding-bottom: max(6rem, env(safe-area-inset-bottom, 4rem))' : ''"
 >
     @include('partials.settings-heading')
 
