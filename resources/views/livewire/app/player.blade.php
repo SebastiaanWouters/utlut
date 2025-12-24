@@ -281,7 +281,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         </div>
 
         <!-- Queue Panel -->
-        <div class="queue-panel flex w-full flex-col border-t border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:w-80 lg:rounded-tl-2xl lg:border-l lg:border-t-0 xl:w-96">
+        <div class="queue-panel flex min-h-0 max-h-[45vh] w-full flex-col border-t border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:max-h-none lg:w-80 lg:rounded-tl-2xl lg:border-l lg:border-t-0 xl:w-96">
             <!-- Header -->
             <div class="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
                 <div class="flex items-center gap-2.5">
@@ -311,7 +311,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
             <div class="mx-4 h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent dark:via-zinc-700/60 sm:mx-5"></div>
 
             <!-- Queue List -->
-            <div class="queue-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 pb-[env(safe-area-inset-bottom)] pt-2 sm:px-3 sm:pt-3">
+            <div class="queue-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-[env(safe-area-inset-bottom)] pt-2 sm:px-3 sm:pt-3">
                 <div class="space-y-1">
                     <template x-for="(track, index) in $store.player.queue" :key="track.id">
                         <div
