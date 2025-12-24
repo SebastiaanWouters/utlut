@@ -63,6 +63,13 @@
     }
 }
 
+@layer components {
+    /* Standard page content padding - use on all page root elements */
+    .page-content {
+        @apply px-3 py-3 sm:px-4;
+    }
+}
+
 [data-flux-field]:not(ui-radio, ui-checkbox) {
     @apply grid gap-2;
 }

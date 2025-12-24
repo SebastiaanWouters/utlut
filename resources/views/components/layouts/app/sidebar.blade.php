@@ -70,7 +70,7 @@
         </flux:sidebar>
 
         <!-- Mobile User Menu -->
-        <flux:header class="!px-4 pt-[env(safe-area-inset-top)] sm:!px-6 lg:hidden">
+        <flux:header class="!px-3 pt-[env(safe-area-inset-top)] sm:!px-4 lg:hidden">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <flux:spacer />
@@ -220,7 +220,7 @@
                 ></div>
             </div>
 
-            <div class="flex h-16 items-center gap-3 px-4 sm:gap-4 sm:px-6">
+            <div class="flex h-16 items-center gap-3 px-3 sm:gap-4 sm:px-4">
                 {{-- Track Info (clickable to navigate to full player) --}}
                 <a
                     href="{{ route('player') }}"

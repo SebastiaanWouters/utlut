@@ -99,7 +99,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
     <div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <!-- Main Player Area -->
-        <div class="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-4 md:px-6 md:py-10 lg:py-14">
+        <div class="page-content flex min-h-0 flex-1 flex-col items-center justify-center md:py-10 lg:py-14">
             <div class="flex w-full max-w-md flex-col items-center gap-6">
                 <!-- Album Art -->
                 <div class="relative aspect-square w-full max-w-[180px]">
