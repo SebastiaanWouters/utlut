@@ -49,12 +49,16 @@ it('marks article as failed on extraction error', function () {
         ->andThrow(new Exception('Extraction failed'));
 
     $job = new ExtractArticleContent($article);
+    $exception = null;
 
     try {
         $job->handle($mockExtractor);
-    } catch (Exception) {
-        // Expected
+    } catch (Exception $e) {
+        $exception = $e;
     }
+
+    // Simulate what the queue worker does after all retries are exhausted
+    $job->failed($exception);
 
     $article->refresh();
     expect($article->extraction_status)->toBe('failed');

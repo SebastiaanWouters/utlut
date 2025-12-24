@@ -9,13 +9,14 @@ use App\Services\AudioChunker;
 use App\Services\AudioProgressEstimator;
 use App\Services\NagaTts;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 
-class GenerateArticleAudio implements ShouldQueue
+class GenerateArticleAudio implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -43,6 +44,22 @@ class GenerateArticleAudio implements ShouldQueue
     ) {}
 
     /**
+     * The unique ID of the job.
+     */
+    public function uniqueId(): string
+    {
+        return (string) $this->article->id;
+    }
+
+    /**
+     * The number of seconds after which the job's unique lock will be released.
+     */
+    public function uniqueFor(): int
+    {
+        return 300;
+    }
+
+    /**
      * Calculate the number of seconds to wait before retrying the job.
      *
      * @return array<int>
@@ -62,8 +79,11 @@ class GenerateArticleAudio implements ShouldQueue
             'error' => $exception->getMessage(),
         ]);
 
+        $errorCode = AudioErrorCode::fromException($exception);
+
         $this->article->audio?->update([
             'status' => 'failed',
+            'error_code' => $errorCode->value,
             'error_message' => $exception->getMessage(),
         ]);
     }

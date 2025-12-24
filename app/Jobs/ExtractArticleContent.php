@@ -5,13 +5,14 @@ namespace App\Jobs;
 use App\Models\Article;
 use App\Services\UrlContentExtractor;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class ExtractArticleContent implements ShouldQueue
+class ExtractArticleContent implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -34,6 +35,22 @@ class ExtractArticleContent implements ShouldQueue
      * Create a new job instance.
      */
     public function __construct(public Article $article) {}
+
+    /**
+     * The unique ID of the job.
+     */
+    public function uniqueId(): string
+    {
+        return (string) $this->article->id;
+    }
+
+    /**
+     * The number of seconds after which the job's unique lock will be released.
+     */
+    public function uniqueFor(): int
+    {
+        return 300;
+    }
 
     /**
      * Calculate the number of seconds to wait before retrying the job.
@@ -97,10 +114,6 @@ class ExtractArticleContent implements ShouldQueue
                 'url' => $this->article->url,
                 'attempt' => $this->attempts(),
                 'error' => $e->getMessage(),
-            ]);
-
-            $this->article->update([
-                'extraction_status' => 'failed',
             ]);
 
             throw $e;
