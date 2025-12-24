@@ -4,8 +4,8 @@
         @include('partials.head')
     </head>
     <body class="h-screen overflow-hidden bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:sidebar.toggle class="lg:hidden mt-[env(safe-area-inset-top)]" icon="x-mark" />
+        <flux:sidebar sticky stashable class="pt-[env(safe-area-inset-top)] border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+            <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
             <a href="{{ route('library') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
                 <x-app-logo />
@@ -70,7 +70,7 @@
         </flux:sidebar>
 
         <!-- Mobile User Menu -->
-        <flux:header class="!px-3 pt-[env(safe-area-inset-top)] sm:!px-4 lg:hidden">
+        <flux:header class="!px-4 pt-[env(safe-area-inset-top)] lg:hidden">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <flux:spacer />
@@ -220,7 +220,7 @@
                 ></div>
             </div>
 
-            <div class="flex h-16 items-center gap-3 px-3 sm:gap-4 sm:px-4">
+            <div class="flex h-16 items-center gap-3 px-4 sm:gap-4">
                 {{-- Track Info (clickable to navigate to full player) --}}
                 <a
                     href="{{ route('player') }}"
