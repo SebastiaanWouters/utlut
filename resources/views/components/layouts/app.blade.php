@@ -1,5 +1,9 @@
 <x-layouts.app.sidebar :title="$title ?? null">
-    <flux:main class="h-full overflow-y-auto" style="padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));">
+    <flux:main
+        x-data
+        class="h-full overflow-y-auto !p-0"
+        :style="$store.player.currentTrack ? 'padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px))' : 'padding-bottom: env(safe-area-inset-bottom, 0px)'"
+    >
         {{ $slot }}
     </flux:main>
 </x-layouts.app.sidebar>
