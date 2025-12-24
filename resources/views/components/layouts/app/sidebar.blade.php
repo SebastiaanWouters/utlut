@@ -70,7 +70,7 @@
         </flux:sidebar>
 
         <!-- Mobile User Menu -->
-        <flux:header class="pt-[env(safe-area-inset-top)] lg:hidden">
+        <flux:header class="!px-2 pt-[env(safe-area-inset-top)] sm:!px-4 lg:hidden">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
             <flux:spacer />
