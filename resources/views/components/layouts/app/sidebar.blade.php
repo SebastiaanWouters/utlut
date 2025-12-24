@@ -125,9 +125,16 @@
                 deferredPrompt: null,
                 dismissed: localStorage.getItem('pwa-install-dismissed') === 'true',
                 isStandalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
+                isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
                 show: false,
                 init() {
                     if (this.dismissed || this.isStandalone) return;
+
+                    if (this.isIOS) {
+                        this.show = true;
+                        return;
+                    }
+
                     window.addEventListener('beforeinstallprompt', (e) => {
                         e.preventDefault();
                         this.deferredPrompt = e;
@@ -135,6 +142,10 @@
                     });
                 },
                 async install() {
+                    if (this.isIOS) {
+                        this.dismiss();
+                        return;
+                    }
                     if (!this.deferredPrompt) return;
                     this.deferredPrompt.prompt();
                     const { outcome } = await this.deferredPrompt.userChoice;
@@ -161,17 +172,24 @@
                     <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Install Utlut') }}</h3>
                     <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ __('Add to home screen for offline playback and lock screen controls.') }}</p>
                     <div class="mt-3 flex gap-2">
-                        <button
-                            @click="install()"
-                            class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                        >
-                            {{ __('Install') }}
-                        </button>
+                        <template x-if="isIOS">
+                            <p class="text-xs text-zinc-600 dark:text-zinc-300">
+                                {{ __('Tap') }} <flux:icon.arrow-up-on-square class="inline size-4 align-text-bottom" /> {{ __('Share, then "Add to Home Screen"') }}
+                            </p>
+                        </template>
+                        <template x-if="!isIOS">
+                            <button
+                                @click="install()"
+                                class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                            >
+                                {{ __('Install') }}
+                            </button>
+                        </template>
                         <button
                             @click="dismiss()"
                             class="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
                         >
-                            {{ __('Not now') }}
+                            <span x-text="isIOS ? '{{ __('Got it') }}' : '{{ __('Not now') }}'"></span>
                         </button>
                     </div>
                 </div>
