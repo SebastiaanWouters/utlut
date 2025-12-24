@@ -161,46 +161,85 @@
                 }
             }"
             x-show="show"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 scale-95"
             x-cloak
-            class="fixed bottom-20 left-4 right-4 z-40 lg:bottom-4 lg:left-auto lg:right-4 lg:w-80"
+            class="fixed bottom-0 left-4 right-4 z-40 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:bottom-4 lg:left-auto lg:right-4 lg:w-[340px] lg:pb-0"
         >
-            <div class="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-700">
-                    <flux:icon.device-phone-mobile class="size-5 text-zinc-600 dark:text-zinc-300" />
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Install Utlut') }}</h3>
-                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ __('Add to home screen for offline playback and lock screen controls.') }}</p>
-                    <div class="mt-3 flex gap-2">
-                        <template x-if="isIOS">
-                            <p class="text-xs text-zinc-600 dark:text-zinc-300">
-                                {{ __('Tap') }} <flux:icon.arrow-up-on-square class="inline size-4 align-text-bottom" /> {{ __('Share, then "Add to Home Screen"') }}
-                            </p>
-                        </template>
-                        <template x-if="!isIOS">
-                            <button
-                                @click="install()"
-                                class="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                            >
-                                {{ __('Install') }}
-                            </button>
-                        </template>
-                        <button
-                            @click="dismiss()"
-                            class="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                        >
-                            <span x-text="isIOS ? '{{ __('Got it') }}' : '{{ __('Not now') }}'"></span>
-                        </button>
+            <div class="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800 p-5 shadow-2xl shadow-black/40 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+                {{-- Animated audio wave background --}}
+                <div class="pointer-events-none absolute inset-0 overflow-hidden opacity-20">
+                    <div class="absolute -bottom-2 left-0 right-0 flex h-16 items-end justify-around gap-1 px-4">
+                        @for ($i = 0; $i < 24; $i++)
+                            <div
+                                class="w-1.5 rounded-full bg-gradient-to-t from-violet-500 to-fuchsia-400"
+                                style="height: {{ rand(20, 100) }}%; animation: pwa-wave {{ 0.4 + ($i * 0.05) }}s ease-in-out infinite alternate; animation-delay: {{ $i * 0.05 }}s;"
+                            ></div>
+                        @endfor
                     </div>
                 </div>
-                <button
-                    @click="dismiss()"
-                    class="-mr-1 -mt-1 rounded-lg p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
-                >
-                    <flux:icon.x-mark class="size-4" />
-                </button>
+
+                {{-- Gradient orb accent --}}
+                <div class="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-gradient-to-br from-violet-600/30 via-fuchsia-500/20 to-transparent blur-2xl"></div>
+
+                {{-- Content --}}
+                <div class="relative flex items-start gap-4">
+                    {{-- App icon --}}
+                    <div class="flex size-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 shadow-lg shadow-violet-500/25">
+                        <flux:icon.musical-note class="size-7 text-white" />
+                    </div>
+
+                    <div class="flex-1 pt-0.5">
+                        <h3 class="text-base font-semibold tracking-tight text-white">{{ __('Get the Utlut App') }}</h3>
+                        <p class="mt-1 text-sm leading-relaxed text-zinc-400">{{ __('Offline playback & lock screen controls') }}</p>
+                    </div>
+
+                    {{-- Close button --}}
+                    <button
+                        @click="dismiss()"
+                        class="absolute -right-1 -top-1 rounded-full p-1.5 text-zinc-500 transition-all hover:bg-white/10 hover:text-zinc-300"
+                    >
+                        <flux:icon.x-mark class="size-4" />
+                    </button>
+                </div>
+
+                {{-- Actions --}}
+                <div class="relative mt-4 flex items-center gap-3">
+                    <template x-if="isIOS">
+                        <div class="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-zinc-300">
+                            <flux:icon.arrow-up-on-square class="size-4 text-violet-400" />
+                            <span>{{ __('Tap Share → Add to Home') }}</span>
+                        </div>
+                    </template>
+                    <template x-if="!isIOS">
+                        <button
+                            @click="install()"
+                            class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-violet-500/30 active:scale-[0.98]"
+                        >
+                            <flux:icon.arrow-down-tray class="size-4" />
+                            {{ __('Install Now') }}
+                        </button>
+                    </template>
+                    <button
+                        @click="dismiss()"
+                        class="px-3 py-2.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-300"
+                    >
+                        <span x-text="isIOS ? '{{ __('Got it') }}' : '{{ __('Maybe later') }}'"></span>
+                    </button>
+                </div>
             </div>
         </div>
+
+        <style>
+            @keyframes pwa-wave {
+                0% { transform: scaleY(0.3); }
+                100% { transform: scaleY(1); }
+            }
+        </style>
 
         {{ $slot }}
 
