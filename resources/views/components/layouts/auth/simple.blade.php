@@ -7,7 +7,7 @@
         <div class="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
             <div class="flex w-full max-w-sm flex-col gap-2">
                 <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
-                    <x-app-logo :icon-only="true" size="lg" class="text-black dark:text-white mb-1" />
+                    <x-app-logo :icon-only="true" size="lg" class="mb-1" />
                     <span class="sr-only">{{ config('app.name', 'Utlut') }}</span>
                 </a>
                 <div class="flex flex-col gap-6">

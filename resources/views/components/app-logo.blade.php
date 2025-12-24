@@ -15,10 +15,12 @@
 @endphp
 
 @if($iconOnly)
-    <x-app-logo-icon {{ $attributes->merge(['class' => "{$s['icon']} fill-current"]) }} />
+    <div {{ $attributes->merge(['class' => "flex aspect-square {$s['container']} items-center justify-center rounded-lg bg-stone-50 text-zinc-700"]) }}>
+        <x-app-logo-icon class="{{ $s['icon'] }} fill-current" />
+    </div>
 @else
     <div {{ $attributes->merge(['class' => 'flex items-center']) }}>
-        <div class="flex aspect-square {{ $s['container'] }} items-center justify-center rounded-lg bg-accent-content text-accent-foreground">
+        <div class="flex aspect-square {{ $s['container'] }} items-center justify-center rounded-lg bg-stone-50 text-zinc-700">
             <x-app-logo-icon class="{{ $s['icon'] }} fill-current" />
         </div>
         @if($showText)
