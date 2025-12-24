@@ -69,11 +69,15 @@ new #[Title('Playlists')] class extends Component
     @else
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($this->playlists as $playlist)
-                <a
-                    href="{{ route('playlists.show', $playlist) }}"
-                    wire:navigate
-                    class="group flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
+                <div
+                    class="group relative flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
                 >
+                    <a
+                        href="{{ route('playlists.show', $playlist) }}"
+                        wire:navigate
+                        class="absolute inset-0 z-0"
+                    ></a>
+
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex items-center gap-3">
                             <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">
@@ -89,13 +93,12 @@ new #[Title('Playlists')] class extends Component
                             </div>
                         </div>
 
-                        <flux:dropdown position="bottom" align="end">
+                        <flux:dropdown position="bottom" align="end" class="relative z-10">
                             <flux:button
                                 variant="ghost"
                                 icon="ellipsis-vertical"
                                 icon-only
                                 size="sm"
-                                @click.stop
                                 class="shrink-0 text-zinc-500 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 dark:text-zinc-400"
                             />
                             <flux:menu>
@@ -132,7 +135,7 @@ new #[Title('Playlists')] class extends Component
                             <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Empty') }}</p>
                         </div>
                     @endif
-                </a>
+                </div>
             @endforeach
         </div>
     @endif
