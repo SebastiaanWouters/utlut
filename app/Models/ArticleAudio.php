@@ -43,6 +43,7 @@ class ArticleAudio extends Model
             'processing_started_at' => 'datetime',
             'processing_completed_at' => 'datetime',
             'next_retry_at' => 'datetime',
+            'progress_percent' => 'integer',
         ];
     }
 

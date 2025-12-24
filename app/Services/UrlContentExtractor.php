@@ -175,6 +175,11 @@ Rules:
 - body: The main article content only, cleaned up for audio narration
 - Remove navigation, ads, footers, sidebars, cookie notices, subscription prompts
 - Remove URLs, image captions, "Read more" links, social share buttons
+- Remove author bylines ("By John Smith", "Written by...", "Author: ...")
+- Remove publication dates ("December 24, 2024", "Published on...", "Updated...")
+- Remove reading time indicators ("5 min read", "Reading time...")
+- Remove category tags, share/comment counts, source attributions ("Reuters -", "AP -")
+- Start body with the actual article content, not metadata
 - Keep paragraphs readable and flowing naturally
 - Keep original language if not English
 
@@ -422,7 +427,13 @@ Extract the main article content from this webpage text. Return JSON: {"title": 
 
 Rules:
 - title: The main headline/title
-- body: The article content only (no navigation, ads, footer)
+- body: The article content only, cleaned for audio narration
+- Remove navigation, ads, footers, sidebars
+- Remove author bylines ("By John Smith", "Written by...", "Author: ...")
+- Remove publication dates ("December 24, 2024", "Published on...", "Updated...")
+- Remove reading time indicators ("5 min read", "Reading time...")
+- Remove category tags, share/comment counts, source attributions ("Reuters -", "AP -")
+- Start body with the actual article content, not metadata
 - Keep original language if not English
 
 Webpage text:
