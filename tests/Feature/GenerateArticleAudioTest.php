@@ -2,6 +2,8 @@
 
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
+use App\Models\DeviceToken;
+use App\Models\User;
 use App\Services\AudioChunker;
 use App\Services\AudioProgressEstimator;
 use App\Services\NagaTts;
@@ -21,7 +23,7 @@ it('generates and stores audio for an article with title announcement', function
     $mockTts = mock(NagaTts::class);
     $mockTts->shouldReceive('generate')
         ->once()
-        ->with('Now playing: My Article. Test body content')
+        ->with('Now playing: My Article. Test body content', 'alloy')
         ->andReturn('fake audio content');
 
     $job = new GenerateArticleAudio($article);
@@ -32,6 +34,7 @@ it('generates and stores audio for an article with title announcement', function
 
     expect($audioRecord->status)->toBe('ready')
         ->and($audioRecord->audio_path)->toBe("audio/{$article->id}.mp3")
+        ->and($audioRecord->voice)->toBe('alloy')
         ->and(Storage::disk('public')->exists("audio/{$article->id}.mp3"))->toBeTrue()
         ->and(Storage::disk('public')->get("audio/{$article->id}.mp3"))->toBe('fake audio content')
         ->and($article->audio_url)->toBe(Storage::disk('public')->url("audio/{$article->id}.mp3"));
@@ -46,7 +49,7 @@ it('handles failure when tts service fails', function () {
     $mockTts = mock(NagaTts::class);
     $mockTts->shouldReceive('generate')
         ->once()
-        ->with('Now playing: Test Title. Test body content')
+        ->with('Now playing: Test Title. Test body content', 'alloy')
         ->andThrow(new Exception('TTS service error'));
 
     $job = new GenerateArticleAudio($article);
@@ -107,7 +110,7 @@ it('re-generates if content has changed', function () {
     $mockTts = mock(NagaTts::class);
     $mockTts->shouldReceive('generate')
         ->once()
-        ->with($newFullContent)
+        ->with($newFullContent, 'alloy')
         ->andReturn('new audio content');
 
     $job = new GenerateArticleAudio($article);
@@ -130,7 +133,7 @@ it('generates audio without title announcement when title is empty', function ()
     $mockTts = mock(NagaTts::class);
     $mockTts->shouldReceive('generate')
         ->once()
-        ->with('Just the body content')
+        ->with('Just the body content', 'alloy')
         ->andReturn('fake audio content');
 
     $job = new GenerateArticleAudio($article);
@@ -138,4 +141,81 @@ it('generates audio without title announcement when title is empty', function ()
 
     $article->refresh();
     expect($article->audio->status)->toBe('ready');
+});
+
+it('uses the user preferred voice for audio generation', function () {
+    config(['filesystems.default' => 'public']);
+    Storage::fake('public');
+
+    $user = User::factory()->create(['tts_voice' => 'nova']);
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    $article = Article::factory()->create([
+        'device_token_id' => $deviceToken->id,
+        'title' => 'Custom Voice Article',
+        'body' => 'Test body content',
+    ]);
+
+    $mockTts = mock(NagaTts::class);
+    $mockTts->shouldReceive('generate')
+        ->once()
+        ->with('Now playing: Custom Voice Article. Test body content', 'nova')
+        ->andReturn('nova voice audio');
+
+    $job = new GenerateArticleAudio($article);
+    $job->handle($mockTts, new AudioChunker, new AudioProgressEstimator);
+
+    $article->refresh();
+    expect($article->audio->status)->toBe('ready')
+        ->and($article->audio->voice)->toBe('nova');
+});
+
+it('uses alloy voice when user has no voice preference', function () {
+    config(['filesystems.default' => 'public']);
+    Storage::fake('public');
+
+    $user = User::factory()->create(['tts_voice' => null]);
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    $article = Article::factory()->create([
+        'device_token_id' => $deviceToken->id,
+        'title' => 'Default Voice Article',
+        'body' => 'Test body content',
+    ]);
+
+    $mockTts = mock(NagaTts::class);
+    $mockTts->shouldReceive('generate')
+        ->once()
+        ->with('Now playing: Default Voice Article. Test body content', 'alloy')
+        ->andReturn('alloy voice audio');
+
+    $job = new GenerateArticleAudio($article);
+    $job->handle($mockTts, new AudioChunker, new AudioProgressEstimator);
+
+    $article->refresh();
+    expect($article->audio->status)->toBe('ready')
+        ->and($article->audio->voice)->toBe('alloy');
+});
+
+it('stores the voice setting in the audio record', function () {
+    config(['filesystems.default' => 'public']);
+    Storage::fake('public');
+
+    $user = User::factory()->create(['tts_voice' => 'coral']);
+    $deviceToken = DeviceToken::factory()->create(['user_id' => $user->id]);
+    $article = Article::factory()->create([
+        'device_token_id' => $deviceToken->id,
+        'title' => 'Test',
+        'body' => 'Content',
+    ]);
+
+    $mockTts = mock(NagaTts::class);
+    $mockTts->shouldReceive('generate')
+        ->once()
+        ->with('Now playing: Test. Content', 'coral')
+        ->andReturn('audio');
+
+    $job = new GenerateArticleAudio($article);
+    $job->handle($mockTts, new AudioChunker, new AudioProgressEstimator);
+
+    $article->refresh();
+    expect($article->audio->voice)->toBe('coral');
 });

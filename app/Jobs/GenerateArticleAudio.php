@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\AudioErrorCode;
+use App\Enums\TtsVoice;
 use App\Models\Article;
 use App\Models\ArticleAudio;
 use App\Services\AudioChunker;
@@ -105,10 +106,14 @@ class GenerateArticleAudio implements ShouldBeUnique, ShouldQueue
         $contentLength = strlen($fullContent);
         $disk = config('filesystems.default');
 
+        // Get the user's preferred voice from their settings
+        $userVoice = $this->article->deviceToken?->user?->tts_voice ?? TtsVoice::Alloy;
+        $voiceValue = $userVoice instanceof TtsVoice ? $userVoice->value : $userVoice;
+
         /** @var ArticleAudio $audioRecord */
         $audioRecord = $this->article->audio()->firstOrCreate([], [
             'status' => 'pending',
-            'voice' => 'default',
+            'voice' => $voiceValue,
         ]);
 
         // Idempotency check
@@ -136,7 +141,7 @@ class GenerateArticleAudio implements ShouldBeUnique, ShouldQueue
         }
 
         try {
-            $audioContents = $this->processChunks($tts, $chunks, $audioRecord);
+            $audioContents = $this->processChunks($tts, $chunks, $audioRecord, $voiceValue);
             $this->saveAudio($audioContents, $audioRecord, $disk);
         } catch (\Exception $e) {
             $this->handleFailure($audioRecord, $e);
@@ -183,7 +188,8 @@ class GenerateArticleAudio implements ShouldBeUnique, ShouldQueue
     protected function processChunks(
         NagaTts $tts,
         array $chunks,
-        ArticleAudio $audioRecord
+        ArticleAudio $audioRecord,
+        string $voice
     ): string {
         $audioContents = '';
         $totalChunks = count($chunks);
@@ -194,7 +200,7 @@ class GenerateArticleAudio implements ShouldBeUnique, ShouldQueue
                 continue;
             }
 
-            $audioContents .= $tts->generate($chunk);
+            $audioContents .= $tts->generate($chunk, $voice);
 
             // Update progress after each chunk
             $completedChunks = $index + 1;

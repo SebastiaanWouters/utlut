@@ -7,6 +7,7 @@
                 <flux:navlist.item :href="route('two-factor.show')" wire:navigate class="transition-all duration-200">{{ __('Two-Factor Auth') }}</flux:navlist.item>
             @endif
             <flux:navlist.item :href="route('appearance.edit')" wire:navigate class="transition-all duration-200">{{ __('Appearance') }}</flux:navlist.item>
+            <flux:navlist.item :href="route('voice.edit')" wire:navigate class="transition-all duration-200">{{ __('Voice') }}</flux:navlist.item>
         </flux:navlist>
     </div>
 
