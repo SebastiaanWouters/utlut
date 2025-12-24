@@ -119,7 +119,7 @@ class UrlContentExtractor
             throw new \Exception('OpenRouter API key is not configured');
         }
 
-        $maxRetries = config('utlut.extractor.max_retries', 2);
+        $maxRetries = config('sundo.extractor.max_retries', 2);
         $lastException = null;
 
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
@@ -158,7 +158,7 @@ class UrlContentExtractor
      */
     protected function attemptLlmCleanup(string $text, ?string $providedTitle = null): array
     {
-        $extractorConfig = config('utlut.extractor');
+        $extractorConfig = config('sundo.extractor');
         $timeout = $extractorConfig['timeout'] ?? 30;
 
         $systemPrompt = 'You are a helpful assistant that cleans and structures article content for text-to-speech. Return valid JSON with "title" and "body" fields only.';
@@ -277,7 +277,7 @@ PROMPT;
      */
     protected function fetchUrl(string $url): string
     {
-        $timeout = config('utlut.extractor.url_timeout', 30);
+        $timeout = config('sundo.extractor.url_timeout', 30);
 
         Log::info('Fetching URL', ['url' => $url, 'timeout' => $timeout]);
 
@@ -334,7 +334,7 @@ PROMPT;
         $text = trim($text);
 
         // Use smaller max length since we're now extracting cleaner content
-        $maxLength = min(config('utlut.extractor.max_length'), 8000);
+        $maxLength = min(config('sundo.extractor.max_length'), 8000);
         if (strlen($text) > $maxLength) {
             $text = substr($text, 0, $maxLength).'...';
         }
@@ -355,7 +355,7 @@ PROMPT;
             throw new \Exception('OpenRouter API key is not configured');
         }
 
-        $maxRetries = config('utlut.extractor.max_retries', 2);
+        $maxRetries = config('sundo.extractor.max_retries', 2);
         $lastException = null;
 
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
@@ -417,7 +417,7 @@ PROMPT;
      */
     protected function attemptLlmExtraction(string $url, string $text): array
     {
-        $extractorConfig = config('utlut.extractor');
+        $extractorConfig = config('sundo.extractor');
         $timeout = $extractorConfig['timeout'] ?? 30;
 
         $systemPrompt = 'You are a helpful assistant that extracts article content from webpages. Return valid JSON with "title" and "body" fields only.';

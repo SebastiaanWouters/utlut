@@ -34,7 +34,7 @@ class ArticleController extends Controller
             })
             ->when($request->status === 'ready', fn ($q) => $q->whereHas('audio', fn ($sq) => $sq->where('status', 'ready')))
             ->latest()
-            ->paginate(config('utlut.pagination.articles'));
+            ->paginate(config('sundo.pagination.articles'));
 
         return ArticleResource::collection($articles);
     }

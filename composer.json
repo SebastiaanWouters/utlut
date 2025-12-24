@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "sebas/utlut",
+    "name": "sebas/sundo",
     "type": "project",
     "description": "Listen to your articles anywhere.",
     "keywords": [

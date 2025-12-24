@@ -1,5 +1,5 @@
 function getDeviceToken() {
-    const meta = document.querySelector('meta[name="utlut-device-token"]');
+    const meta = document.querySelector('meta[name="sundo-device-token"]');
     return meta?.getAttribute('content') ?? '';
 }
 
@@ -21,27 +21,27 @@ function safeHostname(url) {
 }
 
 // Persistent audio element - survives page navigations
-if (!window.__utlutAudio) {
-    window.__utlutAudio = new Audio();
-    window.__utlutAudio.crossOrigin = 'anonymous';
+if (!window.__sundoAudio) {
+    window.__sundoAudio = new Audio();
+    window.__sundoAudio.crossOrigin = 'anonymous';
 }
 
 // Persistent player state - survives page navigations
-if (!window.__utlutPlayerState) {
-    window.__utlutPlayerState = {
+if (!window.__sundoPlayerState) {
+    window.__sundoPlayerState = {
         queue: [],
         currentIndex: -1,
         currentTrack: null,
-        playbackRate: parseFloat(localStorage.getItem('utlut-playback-rate')) || 1,
-        shuffleEnabled: localStorage.getItem('utlut-shuffle') === 'true',
-        repeatMode: localStorage.getItem('utlut-repeat') || 'off', // 'off', 'one', 'all'
+        playbackRate: parseFloat(localStorage.getItem('sundo-playback-rate')) || 1,
+        shuffleEnabled: localStorage.getItem('sundo-shuffle') === 'true',
+        repeatMode: localStorage.getItem('sundo-repeat') || 'off', // 'off', 'one', 'all'
         shuffleHistory: [], // Tracks already played in shuffle mode
     };
 }
 
 function createPlayerStore() {
-    const audio = window.__utlutAudio;
-    const persistedState = window.__utlutPlayerState;
+    const audio = window.__sundoAudio;
+    const persistedState = window.__sundoPlayerState;
 
     return {
         // config
@@ -287,9 +287,9 @@ function createPlayerStore() {
 
         // Persist state to window for navigation survival
         persistState() {
-            window.__utlutPlayerState.queue = this.queue;
-            window.__utlutPlayerState.currentIndex = this.currentIndex;
-            window.__utlutPlayerState.currentTrack = this.currentTrack;
+            window.__sundoPlayerState.queue = this.queue;
+            window.__sundoPlayerState.currentIndex = this.currentIndex;
+            window.__sundoPlayerState.currentTrack = this.currentTrack;
         },
 
         togglePlay() {
@@ -354,7 +354,7 @@ function createPlayerStore() {
             // Add to shuffle history if shuffle is enabled
             if (this.shuffleEnabled && !this.shuffleHistory.includes(this.currentTrack.id)) {
                 this.shuffleHistory.push(this.currentTrack.id);
-                window.__utlutPlayerState.shuffleHistory = this.shuffleHistory;
+                window.__sundoPlayerState.shuffleHistory = this.shuffleHistory;
             }
 
             this.currentTime = 0;
@@ -511,7 +511,7 @@ function createPlayerStore() {
                 if (unplayedReadyIndices.length > 0) {
                     const randomIdx = unplayedReadyIndices[Math.floor(Math.random() * unplayedReadyIndices.length)];
                     this.shuffleHistory.push(this.queue[randomIdx].id);
-                    window.__utlutPlayerState.shuffleHistory = this.shuffleHistory;
+                    window.__sundoPlayerState.shuffleHistory = this.shuffleHistory;
                     removeOldAndPlay(randomIdx);
                     return;
                 }
@@ -519,7 +519,7 @@ function createPlayerStore() {
                 // All ready tracks played - check repeat mode
                 if (this.repeatMode === 'all') {
                     this.shuffleHistory = [];
-                    window.__utlutPlayerState.shuffleHistory = this.shuffleHistory;
+                    window.__sundoPlayerState.shuffleHistory = this.shuffleHistory;
                     // Find all ready tracks
                     const readyIndices = [];
                     for (let i = 0; i < this.queue.length; i++) {
@@ -615,8 +615,8 @@ function createPlayerStore() {
 
             this.playbackRate = rate;
             audio.playbackRate = rate;
-            localStorage.setItem('utlut-playback-rate', rate.toString());
-            window.__utlutPlayerState.playbackRate = rate;
+            localStorage.setItem('sundo-playback-rate', rate.toString());
+            window.__sundoPlayerState.playbackRate = rate;
             this.updatePositionState();
         },
 
@@ -640,8 +640,8 @@ function createPlayerStore() {
         // Shuffle mode
         toggleShuffle() {
             this.shuffleEnabled = !this.shuffleEnabled;
-            localStorage.setItem('utlut-shuffle', this.shuffleEnabled.toString());
-            window.__utlutPlayerState.shuffleEnabled = this.shuffleEnabled;
+            localStorage.setItem('sundo-shuffle', this.shuffleEnabled.toString());
+            window.__sundoPlayerState.shuffleEnabled = this.shuffleEnabled;
 
             if (this.shuffleEnabled && this.currentTrack) {
                 // Reset shuffle history, keeping current track as first played
@@ -649,7 +649,7 @@ function createPlayerStore() {
             } else {
                 this.shuffleHistory = [];
             }
-            window.__utlutPlayerState.shuffleHistory = this.shuffleHistory;
+            window.__sundoPlayerState.shuffleHistory = this.shuffleHistory;
         },
 
         // Repeat mode: off -> all -> one -> off
@@ -657,8 +657,8 @@ function createPlayerStore() {
             const modes = ['off', 'all', 'one'];
             const currentIdx = modes.indexOf(this.repeatMode);
             this.repeatMode = modes[(currentIdx + 1) % modes.length];
-            localStorage.setItem('utlut-repeat', this.repeatMode);
-            window.__utlutPlayerState.repeatMode = this.repeatMode;
+            localStorage.setItem('sundo-repeat', this.repeatMode);
+            window.__sundoPlayerState.repeatMode = this.repeatMode;
         },
 
         // Queue reordering
@@ -897,7 +897,7 @@ function createPlayerStore() {
 
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: this.currentTrack.title || this.currentTrack.url,
-                artist: 'Utlut',
+                artist: 'Sundo',
                 album: 'Articles',
                 artwork: [
                     { src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' },
@@ -934,11 +934,11 @@ function installPlayerStore() {
 
     // Check if store already exists (survives wire:navigate)
     const existingStore = AlpineRef.store('player');
-    if (existingStore && existingStore.audio === window.__utlutAudio) {
+    if (existingStore && existingStore.audio === window.__sundoAudio) {
         // Store exists with same audio element - just refresh token and sync state
         existingStore.token = getDeviceToken();
-        existingStore.isPlaying = !window.__utlutAudio.paused && !window.__utlutAudio.ended;
-        existingStore.currentTime = window.__utlutAudio.currentTime || 0;
+        existingStore.isPlaying = !window.__sundoAudio.paused && !window.__sundoAudio.ended;
+        existingStore.currentTime = window.__sundoAudio.currentTime || 0;
         existingStore.setDurationFromAudio();
         existingStore.syncProgress();
         existingStore.syncBuffered();
@@ -946,8 +946,8 @@ function installPlayerStore() {
     }
 
     // First time installation
-    if (!window.__utlutPlayerStoreInstalled) {
-        window.__utlutPlayerStoreInstalled = true;
+    if (!window.__sundoPlayerStoreInstalled) {
+        window.__sundoPlayerStoreInstalled = true;
         AlpineRef.store('player', createPlayerStore());
         AlpineRef.store('player').init();
     }

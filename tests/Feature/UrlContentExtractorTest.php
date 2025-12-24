@@ -9,13 +9,13 @@ beforeEach(function () {
     config([
         'laravel-openrouter.api_key' => 'test-api-key',
         'laravel-openrouter.api_endpoint' => 'https://openrouter.ai/api/v1/',
-        'utlut.extractor.model' => 'google/gemini-2.5-flash-lite',
-        'utlut.extractor.timeout' => 30,
-        'utlut.extractor.temperature' => 0.1,
-        'utlut.extractor.max_tokens' => 4096,
-        'utlut.extractor.max_length' => 15000,
-        'utlut.extractor.url_timeout' => 30,
-        'utlut.extractor.max_retries' => 2,
+        'sundo.extractor.model' => 'google/gemini-3-flash-preview',
+        'sundo.extractor.timeout' => 30,
+        'sundo.extractor.temperature' => 0.1,
+        'sundo.extractor.max_tokens' => 4096,
+        'sundo.extractor.max_length' => 15000,
+        'sundo.extractor.url_timeout' => 30,
+        'sundo.extractor.max_retries' => 2,
     ]);
 });
 

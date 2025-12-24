@@ -15,7 +15,7 @@ class NagaTts
     public function generate(string $text, ?string $voice = null): string
     {
         $nagaConfig = config('services.naga');
-        $ttsConfig = config('utlut.tts');
+        $ttsConfig = config('sundo.tts');
 
         if (! $nagaConfig['key']) {
             throw new \Exception('Naga API key is not configured');

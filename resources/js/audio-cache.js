@@ -1,6 +1,6 @@
 const dbPromise = new Promise((resolve, reject) => {
     if (typeof window === 'undefined') return;
-    const request = indexedDB.open('utlut-db', 1);
+    const request = indexedDB.open('sundo-db', 1);
     request.onupgradeneeded = (e) => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('articles')) {
@@ -36,7 +36,7 @@ export const MetadataDB = {
 };
 
 export const AudioCache = {
-    CACHE_NAME: 'utlut-audio-cache-v1',
+    CACHE_NAME: 'sundo-audio-cache-v1',
 
     /**
      * Parse Range header and return start and end positions

@@ -25,7 +25,7 @@
         </div>
         @if($showText)
             <div class="ms-2 grid flex-1 text-start {{ $s['text'] }}">
-                <span class="truncate leading-tight font-semibold">Utlut</span>
+                <span class="truncate leading-tight font-semibold">Sundo</span>
             </div>
         @endif
     </div>

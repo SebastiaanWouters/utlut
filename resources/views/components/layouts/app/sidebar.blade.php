@@ -194,7 +194,7 @@
                     </div>
 
                     <div class="flex-1 pt-0.5">
-                        <h3 class="text-base font-semibold tracking-tight text-white">{{ __('Get the Utlut App') }}</h3>
+                        <h3 class="text-base font-semibold tracking-tight text-white">{{ __('Get the Sundo App') }}</h3>
                         <p class="mt-1 text-sm leading-relaxed text-zinc-400">{{ __('Offline playback & lock screen controls') }}</p>
                     </div>
 

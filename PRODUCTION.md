@@ -30,7 +30,7 @@ LOG_LEVEL=info
 
 # Cache (recommended: redis for production)
 CACHE_STORE=redis
-CACHE_PREFIX=utlut-cache-
+CACHE_PREFIX=sundo-cache-
 
 # Queue (recommended: redis for production)
 QUEUE_CONNECTION=redis

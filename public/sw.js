@@ -1,5 +1,5 @@
-const CACHE_NAME = 'utlut-v1';
-const AUDIO_CACHE_NAME = 'utlut-audio-cache-v1';
+const CACHE_NAME = 'sundo-v1';
+const AUDIO_CACHE_NAME = 'sundo-audio-cache-v1';
 const STATIC_ASSETS = [
     '/',
     '/manifest.webmanifest',

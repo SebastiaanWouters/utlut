@@ -642,7 +642,7 @@ Coordinate multi-agent work via MCP. Use bead id as thread_id.
 - `fetch_inbox(agent_name, project_key)` - check messages
 
 ### Workflow Pattern
-1. Register: `register_agent("/Users/sebas/Code/utlut", "cursor-agent")`
+1. Register: `register_agent("/Users/sebas/Code/sundo", "cursor-agent")`
 2. Reserve: `file_reservation_paths(..., ["resources/views/**"], 3600, true, "<bead-id>")`
 3. Work the task
 4. Release: `release_file_reservations(...)`

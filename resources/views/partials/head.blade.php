@@ -11,7 +11,7 @@
 <!-- PWA / iOS Meta -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Utlut">
+<meta name="apple-mobile-web-app-title" content="Sundo">
 <meta name="theme-color" id="theme-color-meta" content="#0a0a0a">
 <script>
     (function() {
@@ -25,7 +25,7 @@
 </script>
 
 @auth
-    <meta name="utlut-device-token" content="{{ auth()->user()->deviceTokens()->first()?->token ?? '' }}">
+    <meta name="sundo-device-token" content="{{ auth()->user()->deviceTokens()->first()?->token ?? '' }}">
 @endauth
 
 <link rel="preconnect" href="https://fonts.bunny.net">

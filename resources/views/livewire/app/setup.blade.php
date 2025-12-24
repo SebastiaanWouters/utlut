@@ -52,7 +52,7 @@ new #[Title('Setup')] class extends Component {
                     </div>
                     <flux:button
                         as="a"
-                        href="https://www.icloud.com/shortcuts/1040e32c66e64c2785f58595fa5cb9e6"
+                        href="https://www.icloud.com/shortcuts/b04a5a2c20b04e1091d0bd9bad770697"
                         variant="primary"
                         icon="arrow-down-tray"
                         class="w-fit"
@@ -111,7 +111,7 @@ new #[Title('Setup')] class extends Component {
                             <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-zinc-400 dark:bg-zinc-600 dark:text-zinc-300">
                                 <flux:icon.bolt class="size-3.5" />
                             </div>
-                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Select <span class="font-medium text-zinc-900 dark:text-zinc-100">Save To Utlut</span></p>
+                            <p class="text-sm text-zinc-600 dark:text-zinc-300">Select <span class="font-medium text-zinc-900 dark:text-zinc-100">Save To Sundo</span></p>
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-zinc-400 dark:bg-zinc-600 dark:text-zinc-300">
