@@ -73,9 +73,9 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         <div class="flex flex-1 flex-col items-center justify-center px-6 py-8 md:px-12 md:py-12 lg:py-16">
             <div class="flex w-full max-w-md flex-col items-center gap-6">
                 <!-- Album Art -->
-                <div class="relative aspect-square w-full max-w-[260px]">
-                    <div class="absolute -inset-1 rounded-[28px] bg-gradient-to-br from-zinc-200 to-zinc-300 opacity-50 blur-xl dark:from-zinc-700 dark:to-zinc-800"></div>
-                    <div class="relative flex h-full w-full items-center justify-center rounded-[24px] bg-gradient-to-br from-zinc-100 to-zinc-200 shadow-xl dark:from-zinc-700 dark:to-zinc-800">
+                <div class="relative aspect-square w-full max-w-[180px]">
+                    <div class="absolute -inset-1 rounded-[22px] bg-gradient-to-br from-zinc-200 to-zinc-300 opacity-50 blur-xl dark:from-zinc-700 dark:to-zinc-800"></div>
+                    <div class="relative flex h-full w-full items-center justify-center rounded-[18px] bg-gradient-to-br from-zinc-100 to-zinc-200 shadow-xl dark:from-zinc-700 dark:to-zinc-800">
                         <!-- Loading overlay -->
                         <div
                             x-show="$store.player.isLoading"
@@ -85,13 +85,13 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                             x-transition:leave="transition ease-in duration-150"
                             x-transition:leave-start="opacity-100"
                             x-transition:leave-end="opacity-0"
-                            class="absolute inset-0 z-10 flex items-center justify-center rounded-[24px] bg-white/60 backdrop-blur-sm dark:bg-black/40"
+                            class="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-white/60 backdrop-blur-sm dark:bg-black/40"
                             x-cloak
                         >
-                            <div class="size-12 animate-spin rounded-full border-[3px] border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-zinc-100"></div>
+                            <div class="size-10 animate-spin rounded-full border-[3px] border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-zinc-100"></div>
                         </div>
-                        <div class="flex size-24 items-center justify-center rounded-full bg-white/60 dark:bg-black/20">
-                            <flux:icon name="musical-note" class="size-12 text-zinc-400 dark:text-zinc-500" />
+                        <div class="flex size-16 items-center justify-center rounded-full bg-white/60 dark:bg-black/20">
+                            <flux:icon name="musical-note" class="size-8 text-zinc-400 dark:text-zinc-500" />
                         </div>
                     </div>
                 </div>
@@ -168,17 +168,16 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
                     <!-- Skip Back 15s -->
                     <button
-                        class="flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        class="relative flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
                         @click="$store.player.skipBackward(15)"
                         x-bind:disabled="!$store.player.currentTrack"
                         title="{{ __('Back 15 seconds') }}"
                     >
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 17a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1z"/>
-                            <path d="M21 17a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1z"/>
-                            <path d="M3 5v6h6"/>
-                            <path d="M3 11a9 9 0 0 1 15-6.7"/>
+                        <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9"/>
+                            <path d="M3 7v5h5"/>
                         </svg>
+                        <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold">15</span>
                     </button>
 
                     <!-- Play/Pause -->
@@ -203,17 +202,16 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
                     <!-- Skip Forward 15s -->
                     <button
-                        class="flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+                        class="relative flex size-10 items-center justify-center rounded-full text-zinc-400 transition-all duration-200 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
                         @click="$store.player.skipForward(15)"
                         x-bind:disabled="!$store.player.currentTrack"
                         title="{{ __('Forward 15 seconds') }}"
                     >
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 17a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/>
-                            <path d="M13 17a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1z"/>
-                            <path d="M21 5v6h-6"/>
-                            <path d="M21 11a9 9 0 0 0-15-6.7"/>
+                        <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 1 1-9-9"/>
+                            <path d="M21 7v5h-5"/>
                         </svg>
+                        <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold">15</span>
                     </button>
 
                     <!-- Next Track -->
@@ -283,11 +281,11 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         </div>
 
         <!-- Queue Panel -->
-        <div class="queue-panel flex w-full flex-col border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50 to-zinc-100/50 dark:border-zinc-700/60 dark:from-zinc-900 dark:to-zinc-900/80 lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
+        <div class="queue-panel flex w-full flex-col border-t border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:w-80 lg:rounded-tl-2xl lg:border-l lg:border-t-0 xl:w-96">
             <!-- Header -->
             <div class="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
                 <div class="flex items-center gap-2.5">
-                    <div class="flex size-7 items-center justify-center rounded-lg bg-zinc-200/80 dark:bg-zinc-700/60">
+                    <div class="flex size-7 items-center justify-center rounded-lg bg-zinc-200/60 dark:bg-zinc-700/50">
                         <flux:icon name="queue-list" class="size-4 text-zinc-500 dark:text-zinc-400" />
                     </div>
                     <h2 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{{ __('Up Next') }}</h2>
@@ -313,7 +311,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
             <div class="mx-4 h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent dark:via-zinc-700/60 sm:mx-5"></div>
 
             <!-- Queue List -->
-            <div class="queue-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 py-2 sm:px-3 sm:py-3">
+            <div class="queue-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 pb-[env(safe-area-inset-bottom)] pt-2 sm:px-3 sm:pt-3">
                 <div class="space-y-1">
                     <template x-for="(track, index) in $store.player.queue" :key="track.id">
                         <div

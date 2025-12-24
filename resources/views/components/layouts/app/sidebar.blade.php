@@ -3,7 +3,7 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
+    <body class="h-screen overflow-hidden bg-white dark:bg-zinc-800">
         <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
@@ -192,7 +192,7 @@
             x-data
             x-show="$store.player.currentTrack"
             x-cloak
-            class="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 backdrop-blur-lg dark:border-zinc-700 dark:bg-zinc-900/95 lg:left-64"
+            class="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg dark:border-zinc-700 dark:bg-zinc-900/95 lg:left-64"
         >
             {{-- Progress bar at top edge --}}
             <div class="absolute inset-x-0 top-0 h-0.5 bg-zinc-200 dark:bg-zinc-700">

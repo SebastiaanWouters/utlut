@@ -45,6 +45,22 @@
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
     }
+
+    /* PWA layout - prevent body scroll, enable scroll on main content */
+    html, body {
+        overscroll-behavior: none;
+    }
+
+    /* Enable pull-to-refresh on scrollable content */
+    [data-flux-main] {
+        overscroll-behavior-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Safe area bottom padding for mini player */
+    .pb-safe-bottom {
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    }
 }
 
 [data-flux-field]:not(ui-radio, ui-checkbox) {
