@@ -82,8 +82,9 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
             })
             ->get();
 
+        // If no processing articles, poll every 15 seconds to check for new articles
         if ($processingArticles->isEmpty()) {
-            return 5000;
+            return 15000;
         }
 
         $minInterval = 5000;
@@ -212,7 +213,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
 }; ?>
 
 <div class="mx-auto flex h-full w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-8"
-    @if($this->hasProcessingArticles) wire:poll.{{ $this->optimalPollingInterval }}ms @endif>
+    wire:poll.{{ $this->optimalPollingInterval }}ms>
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

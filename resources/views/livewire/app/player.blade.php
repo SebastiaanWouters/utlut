@@ -73,9 +73,9 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         <div class="flex flex-1 flex-col items-center justify-center px-6 py-8 md:px-12 md:py-12 lg:py-16">
             <div class="flex w-full max-w-md flex-col items-center gap-6">
                 <!-- Album Art -->
-                <div class="relative aspect-square w-full max-w-[260px]">
-                    <div class="absolute -inset-1 rounded-[28px] bg-gradient-to-br from-zinc-200 to-zinc-300 opacity-50 blur-xl dark:from-zinc-700 dark:to-zinc-800"></div>
-                    <div class="relative flex h-full w-full items-center justify-center rounded-[24px] bg-gradient-to-br from-zinc-100 to-zinc-200 shadow-xl dark:from-zinc-700 dark:to-zinc-800">
+                <div class="relative aspect-square w-full max-w-[180px]">
+                    <div class="absolute -inset-1 rounded-[22px] bg-gradient-to-br from-zinc-200 to-zinc-300 opacity-50 blur-xl dark:from-zinc-700 dark:to-zinc-800"></div>
+                    <div class="relative flex h-full w-full items-center justify-center rounded-[18px] bg-gradient-to-br from-zinc-100 to-zinc-200 shadow-xl dark:from-zinc-700 dark:to-zinc-800">
                         <!-- Loading overlay -->
                         <div
                             x-show="$store.player.isLoading"
@@ -85,13 +85,13 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                             x-transition:leave="transition ease-in duration-150"
                             x-transition:leave-start="opacity-100"
                             x-transition:leave-end="opacity-0"
-                            class="absolute inset-0 z-10 flex items-center justify-center rounded-[24px] bg-white/60 backdrop-blur-sm dark:bg-black/40"
+                            class="absolute inset-0 z-10 flex items-center justify-center rounded-[18px] bg-white/60 backdrop-blur-sm dark:bg-black/40"
                             x-cloak
                         >
-                            <div class="size-12 animate-spin rounded-full border-[3px] border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-zinc-100"></div>
+                            <div class="size-10 animate-spin rounded-full border-[3px] border-zinc-300 border-t-zinc-900 dark:border-zinc-600 dark:border-t-zinc-100"></div>
                         </div>
-                        <div class="flex size-24 items-center justify-center rounded-full bg-white/60 dark:bg-black/20">
-                            <flux:icon name="musical-note" class="size-12 text-zinc-400 dark:text-zinc-500" />
+                        <div class="flex size-16 items-center justify-center rounded-full bg-white/60 dark:bg-black/20">
+                            <flux:icon name="musical-note" class="size-8 text-zinc-400 dark:text-zinc-500" />
                         </div>
                     </div>
                 </div>
@@ -173,11 +173,10 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                         x-bind:disabled="!$store.player.currentTrack"
                         title="{{ __('Back 15 seconds') }}"
                     >
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 17a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1z"/>
-                            <path d="M21 17a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1z"/>
-                            <path d="M3 5v6h6"/>
-                            <path d="M3 11a9 9 0 0 1 15-6.7"/>
+                        <svg class="size-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.5 3a9.5 9.5 0 1 0 9.5 9.5h-2A7.5 7.5 0 1 1 12.5 5V3z"/>
+                            <path d="M12.5 3V1L8.5 4l4 3V5a7.5 7.5 0 0 1 0 0V3z"/>
+                            <text x="7" y="15.5" font-size="7" font-weight="600" font-family="system-ui, sans-serif">15</text>
                         </svg>
                     </button>
 
@@ -208,11 +207,10 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                         x-bind:disabled="!$store.player.currentTrack"
                         title="{{ __('Forward 15 seconds') }}"
                     >
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 17a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/>
-                            <path d="M13 17a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1z"/>
-                            <path d="M21 5v6h-6"/>
-                            <path d="M21 11a9 9 0 0 0-15-6.7"/>
+                        <svg class="size-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.5 3a9.5 9.5 0 1 1-9.5 9.5h2A7.5 7.5 0 1 0 11.5 5V3z"/>
+                            <path d="M11.5 3V1l4 3-4 3V5a7.5 7.5 0 0 0 0 0V3z"/>
+                            <text x="6" y="15.5" font-size="7" font-weight="600" font-family="system-ui, sans-serif">15</text>
                         </svg>
                     </button>
 
@@ -283,11 +281,11 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         </div>
 
         <!-- Queue Panel -->
-        <div class="queue-panel flex w-full flex-col border-t border-zinc-200/80 bg-gradient-to-b from-zinc-50 to-zinc-100/50 dark:border-zinc-700/60 dark:from-zinc-900 dark:to-zinc-900/80 lg:w-80 lg:border-l lg:border-t-0 xl:w-96">
+        <div class="queue-panel flex w-full flex-col border-t border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:w-80 lg:rounded-tl-2xl lg:border-l lg:border-t-0 xl:w-96">
             <!-- Header -->
             <div class="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
                 <div class="flex items-center gap-2.5">
-                    <div class="flex size-7 items-center justify-center rounded-lg bg-zinc-200/80 dark:bg-zinc-700/60">
+                    <div class="flex size-7 items-center justify-center rounded-lg bg-zinc-200/60 dark:bg-zinc-700/50">
                         <flux:icon name="queue-list" class="size-4 text-zinc-500 dark:text-zinc-400" />
                     </div>
                     <h2 class="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{{ __('Up Next') }}</h2>
