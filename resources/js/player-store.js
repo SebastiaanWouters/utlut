@@ -693,6 +693,11 @@ function createPlayerStore() {
 
             this.queue.push(article);
             this.persistState();
+
+            // Dispatch toast notification
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: { message: 'Added to Up Next' }
+            }));
         },
 
         // Insert after current track
@@ -738,6 +743,11 @@ function createPlayerStore() {
             const insertIndex = this.currentIndex >= 0 ? this.currentIndex + 1 : 0;
             this.queue.splice(insertIndex, 0, article);
             this.persistState();
+
+            // Dispatch toast notification
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: { message: 'Playing next' }
+            }));
         },
 
         // Check if an article is in the queue

@@ -406,13 +406,13 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                     </flux:menu.item>
                                     <flux:menu.item
                                         icon="queue-list"
-                                        x-on:click="$dispatch('add-to-queue', { articleId: {{ $article->id }} })"
+                                        x-on:click="window.dispatchEvent(new CustomEvent('add-to-queue', { detail: { articleId: {{ $article->id }} } }))"
                                     >
                                         {{ __('Add to Queue') }}
                                     </flux:menu.item>
                                     <flux:menu.item
                                         icon="arrow-right"
-                                        x-on:click="$dispatch('play-next', { articleId: {{ $article->id }} })"
+                                        x-on:click="window.dispatchEvent(new CustomEvent('play-next', { detail: { articleId: {{ $article->id }} } }))"
                                     >
                                         {{ __('Play Next') }}
                                     </flux:menu.item>

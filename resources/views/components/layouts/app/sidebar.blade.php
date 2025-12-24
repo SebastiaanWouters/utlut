@@ -5,7 +5,7 @@
     </head>
     <body class="h-screen overflow-hidden bg-white dark:bg-zinc-800">
         <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
+            <flux:sidebar.toggle class="lg:hidden mt-[env(safe-area-inset-top)]" icon="x-mark" />
 
             <a href="{{ route('library') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
                 <x-app-logo />
@@ -290,6 +290,40 @@
             </div>
         </div>
         @endunless
+
+        {{-- Toast Notification Container --}}
+        <div
+            x-data="{
+                toasts: [],
+                add(message, type = 'success') {
+                    const id = Date.now();
+                    this.toasts.push({ id, message, type });
+                    setTimeout(() => this.remove(id), 3000);
+                },
+                remove(id) {
+                    this.toasts = this.toasts.filter(t => t.id !== id);
+                }
+            }"
+            @toast.window="add($event.detail.message, $event.detail.type)"
+            class="pointer-events-none fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 space-y-2 lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0"
+        >
+            <template x-for="toast in toasts" :key="toast.id">
+                <div
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+                    class="pointer-events-auto flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900"
+                >
+                    <svg class="size-4 text-emerald-400 dark:text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                    </svg>
+                    <span x-text="toast.message"></span>
+                </div>
+            </template>
+        </div>
 
         @fluxScripts
     </body>

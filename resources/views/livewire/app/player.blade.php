@@ -23,6 +23,13 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
     hoverPosition: 0,
     showHoverTime: false,
 
+    // Queue Sheet State
+    showQueueSheet: false,
+    sheetTouchStartY: 0,
+    sheetCurrentY: 0,
+    sheetTranslateY: 0,
+    isDraggingSheet: false,
+
     handleDragStart(e, index) {
         this.draggedIndex = index;
         e.dataTransfer.effectAllowed = 'move';
@@ -61,6 +68,28 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
         const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         this.hoverPosition = percent * 100;
         this.hoverTime = $store.player.formatTime(percent * $store.player.duration);
+    },
+
+    // Sheet Touch Handlers
+    handleSheetTouchStart(e) {
+        this.sheetTouchStartY = e.touches[0].clientY;
+        this.isDraggingSheet = true;
+    },
+
+    handleSheetTouchMove(e) {
+        if (!this.isDraggingSheet) return;
+        const deltaY = e.touches[0].clientY - this.sheetTouchStartY;
+        // Only allow dragging down
+        this.sheetTranslateY = Math.max(0, deltaY);
+    },
+
+    handleSheetTouchEnd() {
+        this.isDraggingSheet = false;
+        // If dragged more than 150px, close the sheet
+        if (this.sheetTranslateY > 150) {
+            this.showQueueSheet = false;
+        }
+        this.sheetTranslateY = 0;
     }
 }">
     <!-- Offline Banner -->
@@ -70,7 +99,7 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
 
     <div class="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <!-- Main Player Area -->
-        <div class="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-6 md:px-6 md:py-10 lg:overflow-visible lg:py-14">
+        <div class="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-4 md:px-6 md:py-10 lg:py-14">
             <div class="flex w-full max-w-md flex-col items-center gap-6">
                 <!-- Album Art -->
                 <div class="relative aspect-square w-full max-w-[180px]">
@@ -280,8 +309,8 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
             </div>
         </div>
 
-        <!-- Queue Panel -->
-        <div class="queue-panel flex min-h-0 flex-1 w-full flex-col border-t border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:flex-none lg:w-80 lg:rounded-tl-2xl lg:border-l lg:border-t-0 xl:w-96">
+        <!-- Queue Panel (Desktop Only) -->
+        <div class="queue-panel hidden min-h-0 flex-col border-zinc-200/50 bg-zinc-50/80 backdrop-blur-sm dark:border-zinc-700/40 dark:bg-zinc-800/50 lg:flex lg:w-80 lg:rounded-tl-2xl lg:border-l xl:w-96">
             <!-- Header -->
             <div class="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
                 <div class="flex items-center gap-2.5">
@@ -440,6 +469,187 @@ new #[Title('Now Playing')] #[Layout('components.layouts.app')] class extends Co
                         <flux:icon name="plus" class="size-4" />
                         {{ __('Browse Library') }}
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Mobile Queue FAB Button --}}
+    <button
+        x-show="$store.player.queue.length > 0"
+        x-cloak
+        @click="showQueueSheet = true"
+        class="fixed bottom-6 right-4 z-40 flex items-center gap-2.5 rounded-full bg-zinc-900 py-3 pl-4 pr-5 text-white shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] lg:hidden dark:bg-white dark:text-zinc-900"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+        x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+    >
+        <div class="relative">
+            <flux:icon name="queue-list" class="size-5" />
+            {{-- Playing indicator dot --}}
+            <span
+                x-show="$store.player.isPlaying"
+                class="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-emerald-400 dark:bg-emerald-500"
+            >
+                <span class="absolute inset-0 animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            </span>
+        </div>
+        <span class="text-sm font-semibold tabular-nums" x-text="$store.player.queue.length + ' ' + ($store.player.queue.length === 1 ? '{{ __('track') }}' : '{{ __('tracks') }}')"></span>
+    </button>
+
+    {{-- Mobile Queue Bottom Sheet --}}
+    <div
+        x-show="showQueueSheet"
+        x-cloak
+        class="fixed inset-0 z-50 lg:hidden"
+        @keydown.escape.window="showQueueSheet = false"
+    >
+        {{-- Backdrop --}}
+        <div
+            x-show="showQueueSheet"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="showQueueSheet = false"
+            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        ></div>
+
+        {{-- Sheet --}}
+        <div
+            x-show="showQueueSheet"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="translate-y-full"
+            x-transition:enter-end="translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="translate-y-0"
+            x-transition:leave-end="translate-y-full"
+            @touchstart.passive="handleSheetTouchStart($event)"
+            @touchmove.passive="handleSheetTouchMove($event)"
+            @touchend="handleSheetTouchEnd()"
+            :style="{ transform: sheetTranslateY > 0 ? `translateY(${sheetTranslateY}px)` : '' }"
+            class="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl transition-transform dark:bg-zinc-900"
+            :class="{ 'duration-0': isDraggingSheet, 'duration-300': !isDraggingSheet }"
+        >
+            {{-- Drag Handle --}}
+            <div class="flex flex-col items-center pt-3 pb-2">
+                <div class="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-zinc-600"></div>
+            </div>
+
+            {{-- Sheet Header --}}
+            <div class="flex items-center justify-between border-b border-zinc-100 px-5 pb-4 dark:border-zinc-800">
+                <div class="flex items-center gap-3">
+                    <div class="flex size-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                        <flux:icon name="queue-list" class="size-5 text-zinc-600 dark:text-zinc-400" />
+                    </div>
+                    <div>
+                        <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Up Next') }}</h2>
+                        <p class="text-xs text-zinc-500" x-text="$store.player.queue.length + ' ' + ($store.player.queue.length === 1 ? '{{ __('track') }}' : '{{ __('tracks') }}')"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        x-show="$store.player.queue.length > 0"
+                        @click="$store.player.clearQueue()"
+                        class="flex size-10 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-red-500 dark:hover:bg-zinc-800 dark:hover:text-red-400"
+                    >
+                        <flux:icon name="trash" class="size-5" />
+                    </button>
+                    <button
+                        @click="showQueueSheet = false"
+                        class="flex size-10 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    >
+                        <flux:icon name="x-mark" class="size-5" />
+                    </button>
+                </div>
+            </div>
+
+            {{-- Sheet Queue List --}}
+            <div class="flex-1 overflow-y-auto overscroll-contain px-3 py-3">
+                <div class="space-y-1">
+                    <template x-for="(track, index) in $store.player.queue" :key="'sheet-' + track.id">
+                        <div
+                            class="group flex items-center gap-3 rounded-2xl px-3 py-3 transition-all duration-200"
+                            :class="[
+                                !$store.player.isArticleReady(track) ? 'opacity-60' : 'cursor-pointer active:bg-zinc-100 dark:active:bg-zinc-800',
+                                ($store.player.currentIndex === index)
+                                    ? 'bg-zinc-100 dark:bg-zinc-800'
+                                    : ''
+                            ]"
+                            @click="$store.player.isArticleReady(track) && $store.player.playTrack(index)"
+                        >
+                            {{-- Track Number / Playing Indicator --}}
+                            <div
+                                class="flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold"
+                                :class="!$store.player.isArticleReady(track)
+                                    ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                                    : ($store.player.currentIndex === index)
+                                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                                        : 'bg-zinc-200/60 text-zinc-500 dark:bg-zinc-700/60 dark:text-zinc-400'"
+                            >
+                                {{-- Processing Spinner --}}
+                                <template x-if="!$store.player.isArticleReady(track)">
+                                    <svg class="size-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                </template>
+                                {{-- Playing Animation --}}
+                                <template x-if="$store.player.isArticleReady(track) && $store.player.currentIndex === index && $store.player.isPlaying">
+                                    <div class="flex items-end gap-[3px]">
+                                        <span class="eq-bar h-2 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                        <span class="eq-bar animation-delay-100 h-3 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                        <span class="eq-bar animation-delay-200 h-2.5 w-[3px] origin-bottom rounded-full bg-current"></span>
+                                    </div>
+                                </template>
+                                {{-- Paused Icon --}}
+                                <template x-if="$store.player.isArticleReady(track) && $store.player.currentIndex === index && !$store.player.isPlaying">
+                                    <flux:icon name="pause" class="size-4" />
+                                </template>
+                                {{-- Track Number --}}
+                                <template x-if="$store.player.isArticleReady(track) && $store.player.currentIndex !== index">
+                                    <span x-text="index + 1" class="tabular-nums"></span>
+                                </template>
+                            </div>
+
+                            {{-- Track Info --}}
+                            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                <span
+                                    class="line-clamp-1 text-sm font-medium"
+                                    :class="$store.player.currentIndex === index ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-300'"
+                                    x-text="track.title || track.url"
+                                ></span>
+                                <span class="line-clamp-1 text-xs text-zinc-500 dark:text-zinc-500" x-text="$store.player.getHostname(track.url)"></span>
+                            </div>
+
+                            {{-- Remove Button --}}
+                            <button
+                                @click.stop="$store.player.removeFromQueue(index)"
+                                class="flex size-9 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-red-500 dark:hover:bg-zinc-700 dark:hover:text-red-400"
+                            >
+                                <flux:icon name="x-mark" class="size-4" />
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Empty State --}}
+                <div
+                    x-show="$store.player.queue.length === 0"
+                    class="flex flex-col items-center justify-center gap-4 py-16"
+                >
+                    <div class="flex size-16 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+                        <flux:icon name="queue-list" class="size-8 text-zinc-400" />
+                    </div>
+                    <div class="text-center">
+                        <p class="font-medium text-zinc-700 dark:text-zinc-300">{{ __('Your queue is empty') }}</p>
+                        <p class="mt-1 text-sm text-zinc-500">{{ __('Add articles from your library') }}</p>
+                    </div>
                 </div>
             </div>
         </div>
