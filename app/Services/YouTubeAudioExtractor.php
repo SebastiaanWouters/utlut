@@ -11,11 +11,14 @@ class YouTubeAudioExtractor
 
     private string $ffmpegPath;
 
+    private string $bunPath;
+
     public function __construct(
         private YouTubeUrlParser $parser
     ) {
         $this->ytDlpPath = config('sundo.youtube.yt_dlp_path', 'yt-dlp');
         $this->ffmpegPath = config('sundo.youtube.ffmpeg_path', 'ffmpeg');
+        $this->bunPath = config('sundo.youtube.bun_path', 'bun');
         $this->checkDependencies();
     }
 
@@ -23,6 +26,7 @@ class YouTubeAudioExtractor
     {
         $ytDlpConfig = config('sundo.youtube.yt_dlp_path');
         $ffmpegConfig = config('sundo.youtube.ffmpeg_path');
+        $bunConfig = config('sundo.youtube.bun_path');
 
         if ($ytDlpConfig === 'yt-dlp') {
             $ytDlpPath = shell_exec('which yt-dlp');
@@ -55,6 +59,23 @@ class YouTubeAudioExtractor
                 Log::info('ffmpeg configured path exists', ['path' => $this->ffmpegPath]);
             } else {
                 Log::error('ffmpeg configured path does not exist', ['path' => $this->ffmpegPath]);
+            }
+        }
+
+        if ($bunConfig === 'bun') {
+            $bunPath = shell_exec('which bun');
+            if ($bunPath) {
+                $this->bunPath = trim($bunPath);
+                Log::info('bun found in PATH', ['path' => $this->bunPath]);
+            } else {
+                Log::warning('bun not found in PATH', ['configured_path' => $bunConfig]);
+            }
+        } else {
+            $this->bunPath = $bunConfig;
+            if (file_exists($this->bunPath)) {
+                Log::info('bun configured path exists', ['path' => $this->bunPath]);
+            } else {
+                Log::error('bun configured path does not exist', ['path' => $this->bunPath]);
             }
         }
     }
@@ -101,6 +122,7 @@ class YouTubeAudioExtractor
             '--dump-json',
             '--no-download',
             '--no-warnings',
+            '--js-runtimes', "bun:{$this->bunPath}",
             '--user-agent', 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
             '--extractor-args', 'youtube:player_client=android',
             '--no-playlist',
@@ -156,6 +178,7 @@ class YouTubeAudioExtractor
             '--audio-quality', (string) $audioQuality,
             '--no-playlist',
             '--no-warnings',
+            '--js-runtimes', "bun:{$this->bunPath}",
             '--user-agent', 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
             '--extractor-args', 'youtube:player_client=android',
             '--retries', '3',

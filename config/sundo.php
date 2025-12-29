@@ -42,7 +42,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'youtube' => [
-        'bin_dir' => env('BIN_DIR_', '/var/www/html/bin'),
+        'bin_dir' => env('BIN_DIR', '/var/www/html/bin'),
         'timeout' => env('YOUTUBE_TIMEOUT', 300),
         'max_duration_seconds' => env('YOUTUBE_MAX_DURATION', 7200),
         'audio_quality' => env('YOUTUBE_AUDIO_QUALITY', 0),
