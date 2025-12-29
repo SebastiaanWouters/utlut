@@ -7,9 +7,57 @@ use Illuminate\Support\Facades\Process;
 
 class YouTubeAudioExtractor
 {
+    private string $ytDlpPath;
+
+    private string $ffmpegPath;
+
     public function __construct(
         private YouTubeUrlParser $parser
-    ) {}
+    ) {
+        $this->ytDlpPath = config('sundo.youtube.yt_dlp_path', 'yt-dlp');
+        $this->ffmpegPath = config('sundo.youtube.ffmpeg_path', 'ffmpeg');
+        $this->checkDependencies();
+    }
+
+    private function checkDependencies(): void
+    {
+        $ytDlpConfig = config('sundo.youtube.yt_dlp_path');
+        $ffmpegConfig = config('sundo.youtube.ffmpeg_path');
+
+        if ($ytDlpConfig === 'yt-dlp') {
+            $ytDlpPath = shell_exec('which yt-dlp');
+            if ($ytDlpPath) {
+                $this->ytDlpPath = trim($ytDlpPath);
+                Log::info('yt-dlp found in PATH', ['path' => $this->ytDlpPath]);
+            } else {
+                Log::warning('yt-dlp not found in PATH', ['configured_path' => $ytDlpConfig]);
+            }
+        } else {
+            $this->ytDlpPath = $ytDlpConfig;
+            if (file_exists($this->ytDlpPath)) {
+                Log::info('yt-dlp configured path exists', ['path' => $this->ytDlpPath]);
+            } else {
+                Log::error('yt-dlp configured path does not exist', ['path' => $this->ytDlpPath]);
+            }
+        }
+
+        if ($ffmpegConfig === 'ffmpeg') {
+            $ffmpegPath = shell_exec('which ffmpeg');
+            if ($ffmpegPath) {
+                $this->ffmpegPath = trim($ffmpegPath);
+                Log::info('ffmpeg found in PATH', ['path' => $this->ffmpegPath]);
+            } else {
+                Log::warning('ffmpeg not found in PATH', ['configured_path' => $ffmpegConfig]);
+            }
+        } else {
+            $this->ffmpegPath = $ffmpegConfig;
+            if (file_exists($this->ffmpegPath)) {
+                Log::info('ffmpeg configured path exists', ['path' => $this->ffmpegPath]);
+            } else {
+                Log::error('ffmpeg configured path does not exist', ['path' => $this->ffmpegPath]);
+            }
+        }
+    }
 
     /**
      * Extract audio and metadata from a YouTube video.
@@ -49,7 +97,7 @@ class YouTubeAudioExtractor
         $timeout = config('sundo.youtube.timeout', 60);
 
         $result = Process::timeout($timeout)->run([
-            'yt-dlp',
+            $this->ytDlpPath,
             '--dump-json',
             '--no-download',
             '--no-warnings',
@@ -85,10 +133,11 @@ class YouTubeAudioExtractor
         Log::info('Downloading YouTube audio', [
             'url' => $url,
             'output_path' => $outputPath,
+            'yt-dlp' => $this->ytDlpPath,
         ]);
 
         $result = Process::timeout($timeout)->run([
-            'yt-dlp',
+            $this->ytDlpPath,
             '-x',
             '--audio-format', 'mp3',
             '--audio-quality', (string) $audioQuality,
@@ -127,19 +176,28 @@ class YouTubeAudioExtractor
         $error = strtolower($errorOutput);
 
         if (str_contains($error, 'video unavailable') || str_contains($error, 'not available')) {
+            Log::error('YouTube video unavailable', ['error' => $errorOutput]);
             throw new \Exception('Video not found or unavailable');
         }
 
         if (str_contains($error, 'private video')) {
+            Log::error('YouTube video is private', ['error' => $errorOutput]);
             throw new \Exception('This video is private');
         }
 
         if (str_contains($error, 'age-restricted') || str_contains($error, 'sign in to confirm your age')) {
+            Log::error('YouTube video is age-restricted', ['error' => $errorOutput]);
             throw new \Exception('This video is age-restricted and cannot be downloaded');
         }
 
         if (str_contains($error, 'copyright')) {
+            Log::error('YouTube video blocked by copyright', ['error' => $errorOutput]);
             throw new \Exception('This video is unavailable due to copyright restrictions');
+        }
+
+        if (str_contains($error, 'timeout')) {
+            Log::error('YouTube download timeout', ['error' => $errorOutput]);
+            throw new \Exception('YouTube download timed out');
         }
 
         Log::error('yt-dlp error', ['error' => $errorOutput]);

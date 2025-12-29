@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\AudioErrorCode;
 use App\Models\Article;
 use App\Services\YouTubeAudioExtractor;
 use Illuminate\Bus\Queueable;
@@ -50,14 +51,26 @@ class ExtractYouTubeAudio implements ShouldBeUnique, ShouldQueue
         Log::error('ExtractYouTubeAudio job failed permanently', [
             'article_id' => $this->article->id,
             'error' => $exception->getMessage(),
+            'trace' => $exception->getTraceAsString(),
         ]);
+
+        $errorCode = AudioErrorCode::fromException($exception);
 
         $this->article->update(['extraction_status' => 'failed']);
 
-        $this->article->audio?->update([
-            'status' => 'failed',
-            'error_message' => $exception->getMessage(),
-        ]);
+        if ($this->article->audio) {
+            $this->article->audio->update([
+                'status' => 'failed',
+                'error_message' => $errorCode->userMessage(),
+                'error_code' => $errorCode->value,
+            ]);
+        } else {
+            $this->article->audio()->create([
+                'status' => 'failed',
+                'error_message' => $errorCode->userMessage(),
+                'error_code' => $errorCode->value,
+            ]);
+        }
     }
 
     public function handle(YouTubeAudioExtractor $extractor): void
@@ -122,11 +135,15 @@ class ExtractYouTubeAudio implements ShouldBeUnique, ShouldQueue
             Log::error('YouTube audio extraction failed', [
                 'article_id' => $this->article->id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+
+            $errorCode = AudioErrorCode::fromException($e);
 
             $audioRecord->update([
                 'status' => 'failed',
-                'error_message' => $e->getMessage(),
+                'error_message' => $errorCode->userMessage(),
+                'error_code' => $errorCode->value,
             ]);
 
             throw $e;

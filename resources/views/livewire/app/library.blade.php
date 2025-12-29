@@ -313,15 +313,10 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                 wire:loading.class="animate-spin"
             />
             <flux:modal.trigger name="add-youtube">
-                <flux:button variant="ghost" class="gap-1.5">
-                    <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                    </svg>
-                    {{ __('YouTube') }}
-                </flux:button>
+                <flux:button variant="primary" icon="plus">{{ __('Add YouTube') }}</flux:button>
             </flux:modal.trigger>
             <flux:modal.trigger name="add-from-url">
-                <flux:button icon="plus" variant="primary">{{ __('Add URL') }}</flux:button>
+                <flux:button variant="primary" icon="plus">{{ __('Add URL') }}</flux:button>
             </flux:modal.trigger>
         </div>
     </div>
@@ -614,7 +609,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     <flux:modal name="add-youtube" class="md:w-[440px]" x-on:close="$wire.resetYouTubeModal()">
         <div class="flex flex-col gap-5">
             <div class="flex items-center gap-3">
-                <div class="flex size-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950/50">
+                <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950/50">
                     <svg class="size-5 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                     </svg>
@@ -648,10 +643,7 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                     <flux:modal.close>
                         <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
                     </flux:modal.close>
-                    <flux:button type="submit" variant="primary" class="gap-1.5">
-                        <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
+                    <flux:button type="submit" variant="primary" icon="plus">
                         {{ __('Add Video') }}
                     </flux:button>
                 </div>

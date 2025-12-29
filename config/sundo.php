@@ -46,6 +46,8 @@ return [
         'max_duration_seconds' => env('YOUTUBE_MAX_DURATION', 7200),
         'audio_quality' => env('YOUTUBE_AUDIO_QUALITY', 0),
         'audio_format' => env('YOUTUBE_AUDIO_FORMAT', 'mp3'),
+        'yt_dlp_path' => env('YOUTUBE_YT_DLP_PATH', env('HOME').'/bin/yt-dlp'),
+        'ffmpeg_path' => env('YOUTUBE_FFMPEG_PATH', env('HOME').'/bin/ffmpeg/ffmpeg'),
     ],
 
     /*
