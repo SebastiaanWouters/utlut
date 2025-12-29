@@ -289,14 +289,11 @@ PROMPT;
     protected function fetchUrl(string $url): string
     {
         $timeout = config('sundo.extractor.url_timeout', 30);
+        $headers = config('sundo.extractor.http_headers', []);
 
         Log::info('Fetching URL', ['url' => $url, 'timeout' => $timeout]);
 
-        $response = Http::withHeaders([
-            'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-            'Accept' => 'text/html,application/xhtml+xml',
-            'Accept-Language' => 'en-US,en;q=0.9,nl;q=0.8',
-        ])->timeout($timeout)->get($url);
+        $response = Http::withHeaders($headers)->timeout($timeout)->get($url);
 
         if ($response->failed()) {
             throw new \Exception("Failed to fetch URL: {$url} (status: {$response->status()})");

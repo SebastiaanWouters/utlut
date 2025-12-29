@@ -253,3 +253,50 @@ test('extracts title from url', function () {
     expect($method->invoke($extractor, 'https://example.com/test_post.html'))->toBe('Test Post');
     expect($method->invoke($extractor, 'https://example.com/'))->toBe('Example');
 });
+
+test('sends referer header with google.com', function () {
+    Http::fake([
+        'example.com/*' => Http::response('<html><title>Test</title><body>Content</body></html>'),
+    ]);
+
+    $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
+    $extractor->shouldReceive('attemptLlmExtraction')
+        ->once()
+        ->andReturn(['title' => 'Test', 'body' => 'Content']);
+
+    $extractor->extract('https://example.com/article');
+
+    Http::assertSent(function ($request) {
+        return $request->hasHeader('Referer', 'https://google.com');
+    });
+});
+
+test('sends configured http headers from config', function () {
+    config([
+        'sundo.extractor.http_headers' => [
+            'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+            'Accept' => 'text/html,application/xhtml+xml',
+            'Accept-Language' => 'en-US,en;q=0.9,nl;q=0.8',
+            'Referer' => 'https://google.com',
+            'DNT' => '1',
+            'Cache-Control' => 'no-cache',
+        ],
+    ]);
+
+    Http::fake([
+        'example.com/*' => Http::response('<html><title>Test</title><body>Content</body></html>'),
+    ]);
+
+    $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
+    $extractor->shouldReceive('attemptLlmExtraction')
+        ->once()
+        ->andReturn(['title' => 'Test', 'body' => 'Content']);
+
+    $extractor->extract('https://example.com/article');
+
+    Http::assertSent(function ($request) {
+        return $request->hasHeader('Referer', 'https://google.com')
+            && $request->hasHeader('DNT', '1')
+            && $request->hasHeader('Cache-Control', 'no-cache');
+    });
+});

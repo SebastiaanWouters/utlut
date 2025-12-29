@@ -25,6 +25,15 @@ return [
         'max_tokens' => env('EXTRACTOR_MAX_TOKENS', 8000),
         'url_timeout' => env('EXTRACTOR_URL_TIMEOUT', 20),
         'max_retries' => env('EXTRACTOR_MAX_RETRIES', 2),
+
+        'http_headers' => [
+            'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+            'Accept' => 'text/html,application/xhtml+xml',
+            'Accept-Language' => 'en-US,en;q=0.9,nl;q=0.8',
+            'Referer' => env('EXTRACTOR_REFERER', 'https://google.com'),
+            'DNT' => '1',
+            'Cache-Control' => 'no-cache',
+        ],
     ],
 
     /*
