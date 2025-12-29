@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BIN_DIR="/var/www/html/bin/youtube"
+BIN_DIR="/var/www/html/bin"
 mkdir -p "$BIN_DIR"
 cd "$BIN_DIR"
 
