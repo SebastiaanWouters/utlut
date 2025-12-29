@@ -254,7 +254,7 @@ test('extracts title from url', function () {
     expect($method->invoke($extractor, 'https://example.com/'))->toBe('Example');
 });
 
-test('sends referer header with google.com', function () {
+test('sends referer header with www.google.com', function () {
     Http::fake([
         'example.com/*' => Http::response('<html><title>Test</title><body>Content</body></html>'),
     ]);
@@ -267,7 +267,7 @@ test('sends referer header with google.com', function () {
     $extractor->extract('https://example.com/article');
 
     Http::assertSent(function ($request) {
-        return $request->hasHeader('Referer', 'https://google.com');
+        return $request->hasHeader('Referer', 'https://www.google.com');
     });
 });
 
@@ -277,7 +277,7 @@ test('sends configured http headers from config', function () {
             'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
             'Accept' => 'text/html,application/xhtml+xml',
             'Accept-Language' => 'en-US,en;q=0.9,nl;q=0.8',
-            'Referer' => 'https://google.com',
+            'Referer' => 'https://www.google.com',
             'DNT' => '1',
             'Cache-Control' => 'no-cache',
         ],
@@ -295,7 +295,7 @@ test('sends configured http headers from config', function () {
     $extractor->extract('https://example.com/article');
 
     Http::assertSent(function ($request) {
-        return $request->hasHeader('Referer', 'https://google.com')
+        return $request->hasHeader('Referer', 'https://www.google.com')
             && $request->hasHeader('DNT', '1')
             && $request->hasHeader('Cache-Control', 'no-cache');
     });
