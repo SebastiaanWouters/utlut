@@ -15,11 +15,17 @@ class Article extends Model
     protected $fillable = [
         'device_token_id',
         'url',
+        'source_type',
         'title',
         'body',
         'audio_url',
         'extraction_status',
     ];
+
+    public function isYouTube(): bool
+    {
+        return $this->source_type === 'youtube';
+    }
 
     /**
      * @return BelongsTo<DeviceToken, Article>

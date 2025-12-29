@@ -254,30 +254,6 @@ test('extracts title from url', function () {
     expect($method->invoke($extractor, 'https://example.com/'))->toBe('Example');
 });
 
-test('sends referer header with www.google.com', function () {
-    config([
-        'sundo.extractor.http_headers' => [
-            'Referer' => 'https://www.google.com',
-        ],
-    ]);
-
-    Http::fake([
-        'example.com/*' => Http::response('<html><title>Test</title><body>Content</body></html>'),
-    ]);
-
-    $extractor = Mockery::mock(UrlContentExtractor::class)->makePartial()->shouldAllowMockingProtectedMethods();
-    $extractor->shouldReceive('attemptLlmExtraction')
-        ->once()
-        ->andReturn(['title' => 'Test', 'body' => 'Content']);
-
-    $extractor->extract('https://example.com/article');
-
-    Http::assertSent(function ($request) {
-        return $request->url() === 'https://example.com/article'
-            && $request->hasHeader('Referer', 'https://www.google.com');
-    });
-});
-
 test('sends configured http headers from config', function () {
     config([
         'sundo.extractor.http_headers' => [

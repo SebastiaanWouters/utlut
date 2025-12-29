@@ -1,11 +1,13 @@
 <?php
 
 use App\Jobs\ExtractArticleContent;
+use App\Jobs\ExtractYouTubeAudio;
 use App\Models\Article;
 use App\Models\DeviceToken;
 use App\Models\Playlist;
 use App\Models\PlaylistItem;
 use App\Services\AudioProgressEstimator;
+use App\Services\YouTubeUrlParser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -21,7 +23,9 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
     public string $search = '';
     public string $status = 'all';
     public string $addUrl = '';
+    public string $youtubeUrl = '';
     public ?string $extractError = null;
+    public ?string $youtubeError = null;
 
     #[Computed]
     public function articles()
@@ -199,6 +203,75 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
         $this->extractError = null;
     }
 
+    public function addFromYouTube(): void
+    {
+        $this->validate([
+            'youtubeUrl' => ['required', 'url', 'max:2048'],
+        ]);
+
+        $this->youtubeError = null;
+
+        $parser = app(YouTubeUrlParser::class);
+
+        if (! $parser->isYouTubeUrl($this->youtubeUrl)) {
+            $this->youtubeError = 'Please enter a valid YouTube URL.';
+
+            return;
+        }
+
+        try {
+            $deviceToken = Auth::user()->deviceTokens()->first();
+
+            if (! $deviceToken) {
+                $rawToken = Str::random(32);
+                $deviceToken = Auth::user()->deviceTokens()->create([
+                    'name' => 'Web',
+                    'token' => $rawToken,
+                    'token_hash' => hash('sha256', $rawToken),
+                ]);
+            }
+
+            $normalizedUrl = $parser->normalize($this->youtubeUrl);
+
+            $existingStatus = Article::where('device_token_id', $deviceToken->id)
+                ->where('url', $normalizedUrl)
+                ->value('extraction_status');
+
+            $article = Article::updateOrCreate(
+                [
+                    'device_token_id' => $deviceToken->id,
+                    'url' => $normalizedUrl,
+                ],
+                [
+                    'source_type' => 'youtube',
+                    'extraction_status' => 'extracting',
+                ]
+            );
+
+            if ($existingStatus !== 'extracting') {
+                ExtractYouTubeAudio::dispatch($article);
+            }
+
+            $this->youtubeUrl = '';
+            $this->modal('add-youtube')->close();
+            $this->resetPage();
+        } catch (\Exception $e) {
+            $this->youtubeError = 'Failed to add YouTube video. Please try again.';
+        }
+    }
+
+    public function resetYouTubeModal(): void
+    {
+        $this->youtubeUrl = '';
+        $this->youtubeError = null;
+    }
+
+    public function retryYouTube(Article $article): void
+    {
+        $article->update(['extraction_status' => 'extracting']);
+        ExtractYouTubeAudio::dispatch($article);
+    }
+
     public function deleteArticle(int $articleId): void
     {
         $deviceTokenIds = Auth::user()->deviceTokens()->pluck('id');
@@ -239,6 +312,14 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                 wire:loading.attr="disabled"
                 wire:loading.class="animate-spin"
             />
+            <flux:modal.trigger name="add-youtube">
+                <flux:button variant="ghost" class="gap-1.5">
+                    <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    {{ __('YouTube') }}
+                </flux:button>
+            </flux:modal.trigger>
             <flux:modal.trigger name="add-from-url">
                 <flux:button icon="plus" variant="primary">{{ __('Add URL') }}</flux:button>
             </flux:modal.trigger>
@@ -369,7 +450,14 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                             @endif
                         </div>
                         <div class="flex items-center gap-1.5 text-xs leading-none text-zinc-400 dark:text-zinc-500">
-                            <span class="truncate">{{ $host }}</span>
+                            @if ($article->isYouTube())
+                                <svg class="size-3 shrink-0 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                </svg>
+                                <span class="truncate">YouTube</span>
+                            @else
+                                <span class="truncate">{{ $host }}</span>
+                            @endif
                             @if ($article->audio?->duration_seconds)
                                 <span class="shrink-0 leading-none">·</span>
                                 <span class="shrink-0 font-mono leading-none">{{ floor($article->audio->duration_seconds / 60) }}:{{ str_pad((string) ($article->audio->duration_seconds % 60), 2, '0', STR_PAD_LEFT) }}</span>
@@ -380,7 +468,11 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                     <!-- Actions -->
                     <div class="flex items-center gap-1">
                         @if ($article->extraction_status === 'failed')
-                            <flux:button size="sm" variant="ghost" wire:click="retryExtraction({{ $article->id }})">{{ __('Retry') }}</flux:button>
+                            @if ($article->isYouTube())
+                                <flux:button size="sm" variant="ghost" wire:click="retryYouTube({{ $article->id }})">{{ __('Retry') }}</flux:button>
+                            @else
+                                <flux:button size="sm" variant="ghost" wire:click="retryExtraction({{ $article->id }})">{{ __('Retry') }}</flux:button>
+                            @endif
                         @elseif ($article->audio_url)
                             <button
                                 wire:click="play({{ $article->id }})"
@@ -512,6 +604,55 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                     </flux:modal.close>
                     <flux:button type="submit" variant="primary" icon="plus">
                         {{ __('Add Article') }}
+                    </flux:button>
+                </div>
+            </form>
+        </div>
+    </flux:modal>
+
+    <!-- Add YouTube Modal -->
+    <flux:modal name="add-youtube" class="md:w-[440px]" x-on:close="$wire.resetYouTubeModal()">
+        <div class="flex flex-col gap-5">
+            <div class="flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950/50">
+                    <svg class="size-5 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Add YouTube Video') }}</h2>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Extract audio from a YouTube video.') }}</p>
+                </div>
+            </div>
+
+            <form wire:submit="addFromYouTube" class="flex flex-col gap-4">
+                <flux:field>
+                    <flux:label>{{ __('YouTube URL') }}</flux:label>
+                    <flux:input
+                        wire:model="youtubeUrl"
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        autofocus
+                    />
+                    <flux:error name="youtubeUrl" />
+                </flux:field>
+
+                @if ($youtubeError)
+                    <div class="flex items-start gap-3 rounded-lg bg-red-50 p-3 dark:bg-red-950/50">
+                        <flux:icon.exclamation-circle class="mt-0.5 size-5 shrink-0 text-red-500 dark:text-red-400" />
+                        <p class="text-sm text-red-600 dark:text-red-400">{{ $youtubeError }}</p>
+                    </div>
+                @endif
+
+                <div class="flex justify-end gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                    <flux:modal.close>
+                        <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
+                    </flux:modal.close>
+                    <flux:button type="submit" variant="primary" class="gap-1.5">
+                        <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                        {{ __('Add Video') }}
                     </flux:button>
                 </div>
             </form>

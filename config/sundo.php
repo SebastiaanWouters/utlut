@@ -38,6 +38,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | YouTube Audio Extraction Configuration
+    |--------------------------------------------------------------------------
+    */
+    'youtube' => [
+        'timeout' => env('YOUTUBE_TIMEOUT', 300),
+        'max_duration_seconds' => env('YOUTUBE_MAX_DURATION', 7200),
+        'audio_quality' => env('YOUTUBE_AUDIO_QUALITY', 0),
+        'audio_format' => env('YOUTUBE_AUDIO_FORMAT', 'mp3'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Pagination Configuration
     |--------------------------------------------------------------------------
     */

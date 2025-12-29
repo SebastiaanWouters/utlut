@@ -8,7 +8,6 @@ use App\Models\ArticleAudio;
 use App\Services\AudioChunker;
 use App\Services\AudioProgressEstimator;
 use App\Services\NagaTts;
-use getID3 as GetID3Analyzer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
