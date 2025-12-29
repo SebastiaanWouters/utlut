@@ -101,6 +101,10 @@ class YouTubeAudioExtractor
             '--dump-json',
             '--no-download',
             '--no-warnings',
+            '--user-agent', 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+            '--extractor-args', 'youtube:player_client=android',
+            '--no-playlist',
+            '--retries', '3',
             $url,
         ]);
 
@@ -143,6 +147,10 @@ class YouTubeAudioExtractor
             '--audio-quality', (string) $audioQuality,
             '--no-playlist',
             '--no-warnings',
+            '--user-agent', 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+            '--extractor-args', 'youtube:player_client=android',
+            '--retries', '3',
+            '--retry-sleep', '10',
             '-o', $outputPath,
             $url,
         ]);
@@ -190,12 +198,17 @@ class YouTubeAudioExtractor
             throw new \Exception('This video is age-restricted and cannot be downloaded');
         }
 
+        if (str_contains($error, 'sign in to confirm') || str_contains($error, 'sign in to confirm you\'re not a bot')) {
+            Log::error('YouTube requires authentication', ['error' => $errorOutput]);
+            throw new \Exception('Video requires authentication. Please try again later.');
+        }
+
         if (str_contains($error, 'copyright')) {
             Log::error('YouTube video blocked by copyright', ['error' => $errorOutput]);
             throw new \Exception('This video is unavailable due to copyright restrictions');
         }
 
-        if (str_contains($error, 'timeout')) {
+        if (str_contains($error, 'timeout') || str_contains($error, 'timed out')) {
             Log::error('YouTube download timeout', ['error' => $errorOutput]);
             throw new \Exception('YouTube download timed out');
         }

@@ -17,6 +17,7 @@ enum AudioErrorCode: string
     case YouTubePrivate = 'youtube_private';
     case YouTubeTimeout = 'youtube_timeout';
     case YouTubeExceedsDuration = 'youtube_exceeds_duration';
+    case YouTubeAuthRequired = 'youtube_auth_required';
     case Unknown = 'unknown';
 
     /**
@@ -38,6 +39,7 @@ enum AudioErrorCode: string
             self::YouTubePrivate => 'This video is private.',
             self::YouTubeTimeout => 'Download timed out. Will retry automatically.',
             self::YouTubeExceedsDuration => 'Video exceeds maximum duration.',
+            self::YouTubeAuthRequired => 'Video requires authentication. Please try again later.',
             self::Unknown => 'Something went wrong. Will retry automatically.',
         };
     }
@@ -52,6 +54,7 @@ enum AudioErrorCode: string
             self::ApiRateLimit,
             self::StorageFailed,
             self::YouTubeTimeout,
+            self::YouTubeAuthRequired,
             self::Unknown => true,
             default => false,
         };
@@ -67,6 +70,7 @@ enum AudioErrorCode: string
             self::NetworkTimeout => 10,
             self::StorageFailed => 5,
             self::YouTubeTimeout => 20,
+            self::YouTubeAuthRequired => 60,
             default => 15,
         };
     }
@@ -84,6 +88,7 @@ enum AudioErrorCode: string
             str_contains($message, 'video unavailable') || str_contains($message, 'not available') => self::YouTubeVideoUnavailable,
             str_contains($message, 'private video') => self::YouTubePrivate,
             str_contains($message, 'age-restricted') || str_contains($message, 'sign in to confirm your age') => self::YouTubeAgeRestricted,
+            str_contains($message, 'sign in to confirm') || str_contains($message, 'sign in to confirm you\'re not a bot') => self::YouTubeAuthRequired,
             str_contains($message, 'copyright') => self::YouTubeCopyright,
             str_contains($message, 'exceeds maximum duration') => self::YouTubeExceedsDuration,
             str_contains($message, '429') || str_contains($message, 'rate limit') => self::ApiRateLimit,
