@@ -26,6 +26,9 @@ class SetupYouTubeCookies extends Command
 
         // Create directory if it doesn't exist
         $directory = dirname($cookiesPath);
+        if (empty($directory) || $directory === '.') {
+            $directory = storage_path('app');
+        }
         if (! File::exists($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
@@ -45,7 +48,7 @@ class SetupYouTubeCookies extends Command
         chmod($cookiesPath, 0600);
 
         $this->info("YouTube cookies setup complete: {$cookiesPath}");
-        $this->info("Cookies file size: ".strlen($decodedCookies).' bytes');
+        $this->info('Cookies file size: '.strlen($decodedCookies).' bytes');
 
         return self::SUCCESS;
     }
