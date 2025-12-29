@@ -236,7 +236,32 @@ class GenerateArticleAudio implements ShouldBeUnique, ShouldQueue
             'processing_completed_at' => now(),
             'retry_count' => 0,
             'next_retry_at' => null,
+            'duration_seconds' => $this->getMp3Duration($audioContents),
         ]);
+    }
+
+    /**
+     * Get the duration of an MP3 file from its binary content.
+     *
+     * @return int Duration in seconds, or 0 if unable to determine
+     */
+    protected function getMp3Duration(string $mp3Data): int
+    {
+        $getID3 = new getID3;
+        $tempFile = tempnam(sys_get_temp_dir(), 'mp3_');
+
+        try {
+            file_put_contents($tempFile, $mp3Data);
+            $info = $getID3->analyze($tempFile);
+
+            return isset($info['playtime_seconds']) ? (int) round($info['playtime_seconds']) : 0;
+        } catch (\Exception $e) {
+            return 0;
+        } finally {
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+        }
     }
 
     /**
