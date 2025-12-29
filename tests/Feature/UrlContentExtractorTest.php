@@ -267,7 +267,8 @@ test('sends referer header with www.google.com', function () {
     $extractor->extract('https://example.com/article');
 
     Http::assertSent(function ($request) {
-        return $request->hasHeader('Referer', 'https://www.google.com');
+        return $request->url() === 'https://example.com/article'
+            && $request->hasHeader('Referer', 'https://www.google.com');
     });
 });
 
