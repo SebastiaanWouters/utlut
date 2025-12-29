@@ -255,6 +255,12 @@ test('extracts title from url', function () {
 });
 
 test('sends referer header with www.google.com', function () {
+    config([
+        'sundo.extractor.http_headers' => [
+            'Referer' => 'https://www.google.com',
+        ],
+    ]);
+
     Http::fake([
         'example.com/*' => Http::response('<html><title>Test</title><body>Content</body></html>'),
     ]);
