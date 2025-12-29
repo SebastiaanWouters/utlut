@@ -26,11 +26,13 @@ else
     echo "yt-dlp already exists"
 fi
 
-echo "Adding to PATH..."
-PATH_EXPORT="export PATH=\"$BIN_DIR/ffmpeg:\$PATH\""
-echo "$PATH_EXPORT" >> ~/.bashrc
-export PATH="$BIN_DIR/ffmpeg:$PATH"
-echo "YouTube dependencies ready: ffmpeg=$BIN_DIR/ffmpeg/ffmpeg, yt-dlp=$BIN_DIR/yt-dlp"
+echo "YouTube dependencies installed:"
+echo "  FFmpeg: $BIN_DIR/ffmpeg/ffmpeg"
+echo "  yt-dlp: $BIN_DIR/yt-dlp"
+echo ""
+echo "Add these to your .env file:"
+echo "  YOUTUBE_FFMPEG_PATH=$BIN_DIR/ffmpeg/ffmpeg"
+echo "  YOUTUBE_YT_DLP_PATH=$BIN_DIR/yt-dlp"
 
 cd "$HOME/html" || cd /var/www/html
 
