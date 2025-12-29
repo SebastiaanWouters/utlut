@@ -368,7 +368,13 @@ new #[Title('Library')] #[Layout('components.layouts.app')] class extends Compon
                                 />
                             @endif
                         </div>
-                        <p class="truncate text-xs text-zinc-400 dark:text-zinc-500">{{ $host }}</p>
+                        <div class="flex items-center gap-1.5 text-xs leading-none text-zinc-400 dark:text-zinc-500">
+                            <span class="truncate">{{ $host }}</span>
+                            @if ($article->audio?->duration_seconds)
+                                <span class="shrink-0 leading-none">·</span>
+                                <span class="shrink-0 font-mono leading-none">{{ floor($article->audio->duration_seconds / 60) }}:{{ str_pad((string) ($article->audio->duration_seconds % 60), 2, '0', STR_PAD_LEFT) }}</span>
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Actions -->
