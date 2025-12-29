@@ -9,7 +9,7 @@ echo "Installing bun (ARM64)..."
 if [ ! -f "$BIN_DIR/bun" ]; then
     BUN_INSTALL="$BIN_DIR/.bun-install"
     curl -fsSL https://bun.sh/install | BUN_INSTALL="$BUN_INSTALL" bash
-    mv "$BUN_INSTALL/bun" "$BIN_DIR/bun"
+    mv "$BUN_INSTALL/bin/bun" "$BIN_DIR/bun"
     chmod +x "$BIN_DIR/bun"
     rm -rf "$BUN_INSTALL"
     echo "bun installed at $BIN_DIR/bun"
