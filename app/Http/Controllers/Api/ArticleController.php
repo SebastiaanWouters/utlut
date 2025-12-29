@@ -6,7 +6,6 @@ use App\Enums\AudioErrorCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SaveArticleRequest;
 use App\Http\Resources\ArticleResource;
-use App\Jobs\CleanArticleContent;
 use App\Jobs\ExtractArticleContent;
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
@@ -69,44 +68,29 @@ class ArticleController extends Controller
     public function store(SaveArticleRequest $request): JsonResponse
     {
         $deviceToken = $request->input('device_token');
-        $hasBody = ! empty($request->validated('body'));
 
         // Check if article already exists and is extracting (to avoid duplicate jobs)
         $existingStatus = Article::where('device_token_id', $deviceToken->id)
             ->where('url', $request->validated('url'))
             ->value('extraction_status');
 
-        // Build update attributes - extraction_status is 'extracting' until cleanup/extraction completes
-        $updateAttributes = [
-            'extraction_status' => 'extracting',
-        ];
-
-        // Only set title if explicitly provided and not empty (will be refined by LLM)
-        $title = $request->validated('title');
-        if (! empty($title)) {
-            $updateAttributes['title'] = $title;
-        }
-
         $article = Article::updateOrCreate(
             [
                 'device_token_id' => $deviceToken->id,
                 'url' => $request->validated('url'),
             ],
-            $updateAttributes
+            ['extraction_status' => 'extracting']
         );
 
-        if ($hasBody && $existingStatus !== 'extracting') {
-            // Body provided directly (e.g., from iOS shortcut), clean it via LLM then generate audio
-            CleanArticleContent::dispatch($article, $request->validated('body'), $title);
-        } elseif (! $hasBody && $existingStatus !== 'extracting') {
-            // No body provided and not already extracting, extract content from URL
+        // Only dispatch if not already extracting (avoid duplicate concurrent jobs)
+        if ($existingStatus !== 'extracting') {
             ExtractArticleContent::dispatch($article);
         }
 
         return response()->json([
             'ok' => true,
             'id' => $article->id,
-            'title' => $article->title ?: $article->url,
+            'title' => $article->url,
             'extraction_status' => $article->extraction_status,
         ]);
     }

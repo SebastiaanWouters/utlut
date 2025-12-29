@@ -23,8 +23,6 @@ class SaveArticleRequest extends FormRequest
     {
         return [
             'url' => ['required', 'string', 'url'],
-            'title' => ['nullable', 'string'],
-            'body' => ['nullable', 'string'],
         ];
     }
 }

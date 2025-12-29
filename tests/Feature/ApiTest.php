@@ -1,6 +1,6 @@
 <?php
 
-use App\Jobs\CleanArticleContent;
+use App\Jobs\ExtractArticleContent;
 use App\Jobs\GenerateArticleAudio;
 use App\Models\Article;
 use App\Models\ArticleAudio;
@@ -55,8 +55,6 @@ test('POST /api/save requires bearer token and stores/dedupes article', function
 
     $data = [
         'url' => 'https://laravel.com',
-        'title' => 'Laravel',
-        'body' => 'Laravel is a web application framework...',
     ];
 
     // No token
@@ -74,8 +72,8 @@ test('POST /api/save requires bearer token and stores/dedupes article', function
         'url' => 'https://laravel.com',
     ]);
 
-    // CleanArticleContent is dispatched when body is provided (cleans via LLM, then generates audio)
-    Queue::assertPushed(CleanArticleContent::class);
+    // ExtractArticleContent is dispatched (fetches URL with referer, extracts via LLM)
+    Queue::assertPushed(ExtractArticleContent::class);
 
     // Deduplication - same URL submitted again while extracting doesn't dispatch another job
     $this->withToken($token)
@@ -84,7 +82,7 @@ test('POST /api/save requires bearer token and stores/dedupes article', function
 
     expect(Article::where('device_token_id', $deviceToken->id)->count())->toBe(1);
     // Only 1 job pushed total - second request is deduped since article is already extracting
-    Queue::assertPushed(CleanArticleContent::class, 1);
+    Queue::assertPushed(ExtractArticleContent::class, 1);
 });
 
 test('GET /api/articles/batch returns articles by IDs', function () {
@@ -129,11 +127,11 @@ test('POST /api/save validates URL', function () {
     ]);
 
     $this->withToken($token)
-        ->postJson('/api/save', ['url' => 'invalid-url', 'title' => 'T', 'body' => 'B'])
+        ->postJson('/api/save', ['url' => 'invalid-url'])
         ->assertStatus(422)
         ->assertJsonValidationErrors(['url']);
 
-    Queue::assertNotPushed(CleanArticleContent::class);
+    Queue::assertNotPushed(ExtractArticleContent::class);
     Queue::assertNotPushed(GenerateArticleAudio::class);
 });
 
