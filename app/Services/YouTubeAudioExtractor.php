@@ -62,21 +62,11 @@ class YouTubeAudioExtractor
             }
         }
 
-        if ($bunConfig === 'bun') {
-            $bunPath = shell_exec('which bun');
-            if ($bunPath) {
-                $this->bunPath = trim($bunPath);
-                Log::info('bun found in PATH', ['path' => $this->bunPath]);
-            } else {
-                Log::warning('bun not found in PATH', ['configured_path' => $bunConfig]);
-            }
+        $this->bunPath = $bunConfig;
+        if (file_exists($this->bunPath)) {
+            Log::info('bun configured path exists', ['path' => $this->bunPath]);
         } else {
-            $this->bunPath = $bunConfig;
-            if (file_exists($this->bunPath)) {
-                Log::info('bun configured path exists', ['path' => $this->bunPath]);
-            } else {
-                Log::error('bun configured path does not exist', ['path' => $this->bunPath]);
-            }
+            Log::error('bun configured path does not exist', ['path' => $this->bunPath]);
         }
     }
 

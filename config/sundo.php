@@ -47,10 +47,10 @@ return [
         'max_duration_seconds' => env('YOUTUBE_MAX_DURATION', 7200),
         'audio_quality' => env('YOUTUBE_AUDIO_QUALITY', 0),
         'audio_format' => env('YOUTUBE_AUDIO_FORMAT', 'mp3'),
-        'yt_dlp_path' => env('YOUTUBE_YT_DLP_PATH', '/var/www/html/bin/yt-dlp'),
-        'ffmpeg_path' => env('YOUTUBE_FFMPEG_PATH', '/var/www/html/bin/ffmpeg'),
+        'yt_dlp_path' => env('YOUTUBE_YT_DLP_PATH', env('BIN_DIR', '/var/www/html/bin').'/yt-dlp'),
+        'ffmpeg_path' => env('YOUTUBE_FFMPEG_PATH', env('BIN_DIR', '/var/www/html/bin').'/ffmpeg'),
         'cookies_path' => env('YOUTUBE_COOKIES_PATH') ?: storage_path('app/cookies.txt'),
-        'bun_path' => env('BUN_PATH', '/var/www/html/bin/bun'),
+        'bun_path' => env('BUN_PATH', env('BIN_DIR', '/var/www/html/bin').'/bun'),
     ],
 
     /*
