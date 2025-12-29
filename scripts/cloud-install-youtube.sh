@@ -19,7 +19,7 @@ fi
 
 echo "Installing yt-dlp..."
 if [ ! -f "$BIN_DIR/yt-dlp" ]; then
-    curl -sSfL -o "$BIN_DIR/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+    curl -sSfL -o "$BIN_DIR/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
     chmod +x "$BIN_DIR/yt-dlp"
     echo "yt-dlp installed"
 else
