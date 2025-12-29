@@ -12,7 +12,7 @@ if [ ! -d "ffmpeg" ]; then
     mv ffmpeg-*-static ffmpeg
     chmod +x "$BIN_DIR/ffmpeg/ffmpeg"
     rm -f ffmpeg.tar.xz
-    echo "FFmpeg installed"
+    echo "FFmpeg installed at $BIN_DIR/ffmpeg/ffmpeg"
 else
     echo "FFmpeg already exists"
 fi
@@ -21,18 +21,10 @@ echo "Installing yt-dlp (ARM64)..."
 if [ ! -f "$BIN_DIR/yt-dlp" ]; then
     curl -sSfL -o "$BIN_DIR/yt-dlp" "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64"
     chmod +x "$BIN_DIR/yt-dlp"
-    echo "yt-dlp installed"
+    echo "yt-dlp installed at $BIN_DIR/yt-dlp"
 else
     echo "yt-dlp already exists"
 fi
-
-echo "YouTube dependencies installed:"
-echo "  FFmpeg: $BIN_DIR/ffmpeg/ffmpeg"
-echo "  yt-dlp: $BIN_DIR/yt-dlp"
-echo ""
-echo "Add these to your .env file:"
-echo "  YOUTUBE_FFMPEG_PATH=$BIN_DIR/ffmpeg/ffmpeg"
-echo "  YOUTUBE_YT_DLP_PATH=$BIN_DIR/yt-dlp"
 
 cd "$HOME/html" || cd /var/www/html
 
