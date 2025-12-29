@@ -18,13 +18,13 @@ else
 fi
 
 echo "Installing FFmpeg (ARM64)..."
-if [ ! -d "$BIN_DIR/ffmpeg" ]; then
+if [ ! -f "$BIN_DIR/ffmpeg" ]; then
     curl -sSfL -o ffmpeg.tar.xz "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz"
     tar -xf ffmpeg.tar.xz
-    mv ffmpeg-*-static "$BIN_DIR/ffmpeg"
-    chmod +x "$BIN_DIR/ffmpeg/ffmpeg"
+    mv ffmpeg-*-static/ffmpeg "$BIN_DIR/ffmpeg"
+    chmod +x "$BIN_DIR/ffmpeg"
     rm -f ffmpeg.tar.xz
-    echo "FFmpeg installed at $BIN_DIR/ffmpeg/ffmpeg"
+    echo "FFmpeg installed at $BIN_DIR/ffmpeg"
 else
     echo "FFmpeg already exists"
 fi
