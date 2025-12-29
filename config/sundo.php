@@ -48,7 +48,7 @@ return [
         'audio_format' => env('YOUTUBE_AUDIO_FORMAT', 'mp3'),
         'yt_dlp_path' => env('YOUTUBE_YT_DLP_PATH', 'yt-dlp'),
         'ffmpeg_path' => env('YOUTUBE_FFMPEG_PATH', 'ffmpeg'),
-        'cookies_path' => env('YOUTUBE_COOKIES_PATH'),
+        'cookies_path' => env('YOUTUBE_COOKIES_PATH') ?: storage_path('app/cookies.txt'),
     ],
 
     /*

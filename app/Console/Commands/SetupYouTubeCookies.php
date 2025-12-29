@@ -22,6 +22,12 @@ class SetupYouTubeCookies extends Command
             return self::SUCCESS;
         }
 
+        if (empty($cookiesPath)) {
+            $this->error('Cookies path is empty. Please configure YOUTUBE_COOKIES_PATH or ensure config has a default.');
+
+            return self::FAILURE;
+        }
+
         $this->info('Setting up YouTube cookies...');
 
         // Create directory if it doesn't exist
