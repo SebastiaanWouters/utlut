@@ -96,7 +96,7 @@ class YouTubeAudioExtractor
     {
         $timeout = config('sundo.youtube.timeout', 60);
 
-        $result = Process::timeout($timeout)->run([
+        $command = [
             $this->ytDlpPath,
             '--dump-json',
             '--no-download',
@@ -105,8 +105,17 @@ class YouTubeAudioExtractor
             '--extractor-args', 'youtube:player_client=android',
             '--no-playlist',
             '--retries', '3',
-            $url,
-        ]);
+        ];
+
+        $cookiesPath = config('sundo.youtube.cookies_path');
+        if ($cookiesPath && file_exists($cookiesPath)) {
+            $command[] = '--cookies';
+            $command[] = $cookiesPath;
+        }
+
+        $command[] = $url;
+
+        $result = Process::timeout($timeout)->run($command);
 
         if (! $result->successful()) {
             $this->handleError($result->errorOutput());
@@ -140,7 +149,7 @@ class YouTubeAudioExtractor
             'yt-dlp' => $this->ytDlpPath,
         ]);
 
-        $result = Process::timeout($timeout)->run([
+        $command = [
             $this->ytDlpPath,
             '-x',
             '--audio-format', 'mp3',
@@ -152,8 +161,17 @@ class YouTubeAudioExtractor
             '--retries', '3',
             '--retry-sleep', '10',
             '-o', $outputPath,
-            $url,
-        ]);
+        ];
+
+        $cookiesPath = config('sundo.youtube.cookies_path');
+        if ($cookiesPath && file_exists($cookiesPath)) {
+            $command[] = '--cookies';
+            $command[] = $cookiesPath;
+        }
+
+        $command[] = $url;
+
+        $result = Process::timeout($timeout)->run($command);
 
         if (! $result->successful()) {
             $this->handleError($result->errorOutput());

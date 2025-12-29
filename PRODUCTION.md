@@ -44,10 +44,15 @@ TRUST_PROXIES=*  # or specific IPs: 192.168.1.1,10.0.0.0/8
 # Security Headers (optional, enabled by default in production)
 ENABLE_SECURITY_HEADERS=true
 
-# Services
-NAGA_API_KEY=your-naga-api-key
-NAGA_API_URL=https://api.naga.ac
-```
+ # Services
+ NAGA_API_KEY=your-naga-api-key
+ NAGA_API_URL=https://api.naga.ac
+
+ # YouTube Cookies (optional, for age-restricted videos)
+ YOUTUBE_COOKIES_PATH=storage/app/cookies.txt
+ YOUTUBE_COOKIES_B64=<base64-encoded-cookies-here>
+ ```
+
 
 ## Pre-Deployment Steps
 
@@ -68,22 +73,29 @@ NAGA_API_URL=https://api.naga.ac
    php artisan view:cache
    ```
 
-4. **Optimize Autoloader**
-   ```bash
-   composer install --optimize-autoloader --no-dev
-   ```
+ 4. **Optimize Autoloader**
+     ```bash
+     composer install --optimize-autoloader --no-dev
+     ```
 
-5. **Build Frontend Assets**
-   ```bash
-   npm ci
-   npm run build
-   ```
+ 5. **Setup YouTube Cookies** (optional, for age-restricted videos)
+     ```bash
+     # Run after environment variables are set
+     php artisan youtube:setup-cookies
+     ```
 
-6. **Set Proper Permissions**
-   ```bash
-   chmod -R 775 storage bootstrap/cache
-   chown -R www-data:www-data storage bootstrap/cache
-   ```
+ 6. **Build Frontend Assets**
+     ```bash
+     npm ci
+     npm run build
+     ```
+
+ 7. **Set Proper Permissions**
+     ```bash
+     chmod -R 775 storage bootstrap/cache
+     chown -R www-data:www-data storage bootstrap/cache
+     ```
+
 
 ## Production Optimizations
 
@@ -107,12 +119,20 @@ Add Laravel scheduler to cron (runs every minute):
 
 Logs are automatically rotated daily (14 days retention by default). Adjust `LOG_DAILY_DAYS` in `.env` if needed.
 
-## Security Features Implemented
+ ## Security Features Implemented
 
-✅ **API Rate Limiting**
-- Token endpoint: 10 requests per minute
-- General API endpoints: 60 requests per minute
-- TTS endpoint: 5 requests per minute
+ ✅ **YouTube Cookies Management**
+ - Cookies file stored in secure location (storage/app/)
+ - Secure file permissions (600 - owner read/write only)
+ - Base64 encoding for safe ENV storage
+ - Never committed to git (in .gitignore)
+ - Optional feature - works without cookies
+
+ ✅ **API Rate Limiting**
+ - Token endpoint: 10 requests per minute
+ - General API endpoints: 60 requests per minute
+ - TTS endpoint: 5 requests per minute
+
 
 ✅ **Security Headers**
 - X-Content-Type-Options: nosniff
